@@ -34,7 +34,7 @@ These changes do not make Stop durable or activate automatic recovery. The SQLit
 
 An explicitly created schema-v2 store now provides durable capture epochs, Begin/Stop fences, bounded ordered batches and retained operation receipts. A separate, unactivated coordinator serializes those commands, closes runtime admission immediately on Stop and keeps uncertainty vetoed until explicit reconciliation. Neither is selected by the app; its Stop remains runtime-only. See [the local capture foundation](docs/local-capture-foundation.md) for limits and validation boundaries.
 
-The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow; the isolated host built at `628b0d3`, but its selected tests did not all pass.
+The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow; the isolated host at `8e4c2eb` built and passed its selected synthetic suites, with two hardware-only skips.
 
 ## Validation status
 
