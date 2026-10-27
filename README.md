@@ -34,13 +34,15 @@ These changes do not make Stop durable or activate automatic recovery. The SQLit
 
 An explicitly created schema-v2 store now provides durable capture epochs, Begin/Stop fences, bounded ordered batches and retained operation receipts. A separate, unactivated coordinator serializes those commands, closes runtime admission immediately on Stop and keeps uncertainty vetoed until explicit reconciliation. Neither is selected by the app; its Stop remains runtime-only. See [the local capture foundation](docs/local-capture-foundation.md) for limits and validation boundaries.
 
-The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow and have no successful build or executed-test result.
+The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow; the isolated host built at `628b0d3`, but its selected tests did not all pass.
 
 ## Validation status
 
 This is a curated source checkpoint, not a release. The portable isolated host at commit `49a6c1f` built unsigned with the iOS Simulator 27.1 SDK, and all nine `RouteRepositoryTests` passed on iOS 26.5, including the corrected post-rename regression. The test now checks exact prepared-to-published bytes and bit-exact decoded sample values without assuming a stable key order across independent JSON encodings.
 
 The earlier original local staging result remains part of the provenance: 53 passed, one failed and two hardware-only checks were skipped among 56 selected tests. The new narrow run did not rerun the other three suites, compile the main app target or validate Wave 2, hardware protection, field coverage or app resource performance.
+
+The combined isolated host at PR3 commit `628b0d3` subsequently built unsigned and ran 80 tests across five suites: 77 passed, one parameterized metadata-fault declaration failed, and two hardware-only checks skipped. Its fault selector has a source-only normalization correction awaiting rerun. This does not establish an overall Wave 2 pass, a main-app build, hardware protection or field/resource performance.
 
 ## Scope boundary
 

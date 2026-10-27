@@ -10,9 +10,10 @@ struct CaptureHistoryTests {
     func pageProtectionFailureClosesTheWriterBeforeOrAfterReadCommit(failingCheck: Int, backupFailure: Bool) async throws {
         let fixture = try captureHistoryFixture()
         defer { captureHistoryRemoveFixture(fixture.container) }
+        let checkedRoot = try RouteStoreFiles.validatedRootURL(fixture.store)
         let checks = Mutex(0)
         let seams = captureHistoryStorageSeams(readProtection: { url in
-            if url == fixture.store {
+            if url == checkedRoot {
                 let count = checks.withLock { value in
                     value += 1
                     return value
@@ -44,6 +45,7 @@ struct CaptureHistoryTests {
             _ = try await store.readControl()
         }
         #expect(checks.withLock { $0 } >= failingCheck)
+        #expect(checks.withLock { $0 } == failingCheck)
         await store.close()
         let reopened = try CaptureHistoryStoreFactory.open(at: fixture.store)
         #expect(try await reopened.readControl().revision == 0)
