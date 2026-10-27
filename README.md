@@ -30,10 +30,14 @@ Runtime generations now fence old stream/session completions. Start waits for st
 
 These changes do not make Stop durable or activate automatic recovery. The SQLite store remains separate from the app's default JSONL path.
 
+## Synthetic durable capture foundation
+
+An explicitly created schema-v2 store now provides durable capture epochs, Begin/Stop fences, bounded ordered batches and retained operation receipts. A separate, unactivated coordinator serializes those commands, closes runtime admission immediately on Stop and keeps uncertainty vetoed until explicit reconciliation. Neither is selected by the app; its Stop remains runtime-only. See [the local capture foundation](docs/local-capture-foundation.md) for limits and validation boundaries.
+
 ## Validation status
 
 This is a curated source checkpoint, not a release. The published snapshot has not been compiled or test-executed. Static source/project review does not establish runtime correctness, field coverage, battery use or hardware protection.
 
 ## Scope boundary
 
-Durable recording intent, bounded history queries and measured resource use are planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.
+Default-store integration, bounded history queries and measured resource use remain planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.

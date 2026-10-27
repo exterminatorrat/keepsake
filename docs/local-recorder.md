@@ -24,4 +24,6 @@ JSONL verifies protection and backup exclusion before appending bytes or publish
 
 Recording intent and runtime state are not yet a durable control protocol. Cancellation is not an acknowledged durable Stop. Automatic process/reboot restoration, force-quit recovery, bounded all-history memory and calibrated battery/CPU/disk/UI performance are not established.
 
+An explicit, unactivated schema-v2 store and coordinator now implement a separate [durable capture foundation](local-capture-foundation.md). They do not change the running app's JSONL selection or activate recovery; their new source and tests remain uncompiled and unrun.
+
 Unit tests use synthetic data and temporary files. Some simulator fixtures substitute only unavailable protection metadata readback, while strict physical protection tests are hardware-only. No simulator result can prove first-unlock behavior or all-day background delivery. The published source checkpoint is uncompiled and unrun; hardware and field validation remain separate work.
