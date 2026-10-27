@@ -14,6 +14,12 @@ The running prototype selects `RouteRepository` and JSONL. `RouteStore` is a sep
 
 Synthetic stopped-file import preserves an immutable input snapshot and refuses ambiguous or corrupt state. It does not authorize migration of actual route history. Clear/export operations have explicit selected-store boundaries; immutable source snapshots are not silently deleted. No cloud service is used.
 
+## Hardened runtime and write outcomes
+
+The logical recording UUID is distinct from a runtime generation. Old errors, diagnostics and completions cannot intentionally act as the current owner. A normally ended stream releases its owner and reports interruption. Permission interruption requires an explicit restart rather than activating automatic recovery. Startup/clear/write readiness gates Start, and a runtime Stop remains available during storage faults.
+
+JSONL verifies protection and backup exclusion before appending bytes or publishing a rewritten archive. A failure after a write or replacement is reported as an uncertain outcome. The SQLite writer likewise closes after an uncertain COMMIT/post-COMMIT result; callers must reopen and reconcile stable identities rather than blindly retry or claim rollback. These source paths still require executed validation.
+
 ## Unverified boundaries
 
 Recording intent and runtime state are not yet a durable control protocol. Cancellation is not an acknowledged durable Stop. Automatic process/reboot restoration, force-quit recovery, bounded all-history memory and calibrated battery/CPU/disk/UI performance are not established.

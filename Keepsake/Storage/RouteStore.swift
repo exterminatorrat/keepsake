@@ -8,6 +8,9 @@ enum RouteStoreFaultPoint: String, Hashable, Sendable {
     case afterManifestPublish
     case beforeTransactionWrite
     case beforeTransactionCommit
+    case afterTransactionCommit
+    case beforeTransactionFileSync
+    case beforeTransactionDirectorySync
 }
 
 enum RouteStoreMigrationAuthorization: String, Codable, Equatable, Sendable {
@@ -31,6 +34,7 @@ enum RouteStoreError: Error, Equatable, Sendable {
     case protectionFailed
     case backupExclusionFailed
     case writeFailed
+    case commitOutcomeUncertain
     case incompatibleLegacyExport
     case injectedFault(RouteStoreFaultPoint)
 }
@@ -456,17 +460,28 @@ private final class RouteStoreCore {
             throw error
         }
         try RouteStoreSQLite.execute(database, sql: "BEGIN IMMEDIATE")
+        var commitAttempted = false
+        var commitSucceeded = false
         do {
             let result = try operation()
             try protectExistingSidecars()
             try seams.fault(.beforeTransactionCommit)
             try validateStoreIdentities()
+            commitAttempted = true
             try RouteStoreSQLite.execute(database, sql: "COMMIT")
+            commitSucceeded = true
+            try seams.fault(.afterTransactionCommit)
             try validateStoreIdentities()
+            try seams.fault(.beforeTransactionFileSync)
             try RouteStoreFiles.synchronizeFile(databaseURL)
+            try seams.fault(.beforeTransactionDirectorySync)
             try RouteStoreFiles.synchronizeDirectory(rootURL)
             return result
         } catch {
+            if commitSucceeded || (commitAttempted && sqlite3_get_autocommit(database) != 0) {
+                releaseResources()
+                throw RouteStoreError.commitOutcomeUncertain
+            }
             if sqlite3_get_autocommit(database) == 0 {
                 let rollbackStatus = sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
                 guard rollbackStatus == SQLITE_OK else {

@@ -24,6 +24,12 @@ For unsigned simulator validation, set `CODE_SIGNING_ALLOWED=NO` and provide the
 
 Tests construct synthetic routes in owned temporary directories. Simulator fixtures explicitly model unavailable protection readback; they cannot establish physical-device encryption or background reliability. See [local recorder boundaries](docs/local-recorder.md).
 
+## Lifecycle and storage hardening
+
+Runtime generations now fence old stream/session completions. Start waits for storage readiness, clear/write operations serialize, permission refreshes coalesce, and storage faults do not disable an active Stop control. JSONL verifies protection before writing location bytes; SQLite post-COMMIT failures are reported as uncertain rather than falsely rolled back. Fake platform handles and deterministic barriers cover the intended interleavings in tests.
+
+These changes do not make Stop durable or activate automatic recovery. The SQLite store remains separate from the app's default JSONL path.
+
 ## Validation status
 
 This is a curated source checkpoint, not a release. The published snapshot has not been compiled or test-executed. Static source/project review does not establish runtime correctness, field coverage, battery use or hardware protection.

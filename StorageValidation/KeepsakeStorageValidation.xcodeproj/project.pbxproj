@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E40000000000000000000001 /* RecordingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000001 /* RecordingState.swift */; };
+		E40000000000000000000002 /* RecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000002 /* RecorderModel.swift */; };
+		E40000000000000000000003 /* RecorderLifecycleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000003 /* RecorderLifecycleSupport.swift */; };
+		E40000000000000000000004 /* LocationAuthorizationObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000004 /* LocationAuthorizationObserver.swift */; };
+		E40000000000000000000005 /* RouteRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000005 /* RouteRepositoryTests.swift */; };
+		E40000000000000000000006 /* RecorderModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000006 /* RecorderModelTests.swift */; };
+		E40000000000000000000007 /* LocationAuthorizationObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000007 /* LocationAuthorizationObserverTests.swift */; };
 		2B4444581BE6D6E7CC4A60A5 /* RouteSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAE0014269DE4005B2D18D4 /* RouteSample.swift */; };
 		33BA459207557854C68E8471 /* RouteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3AA1A9CA610A83139890A0 /* RouteStoreTests.swift */; };
 		5C66EC18069BA766158F8A54 /* StorageValidationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */; };
@@ -27,6 +34,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E30000000000000000000001 /* RecordingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingState.swift; sourceTree = "<group>"; };
+		E30000000000000000000002 /* RecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModel.swift; sourceTree = "<group>"; };
+		E30000000000000000000003 /* RecorderLifecycleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderLifecycleSupport.swift; sourceTree = "<group>"; };
+		E30000000000000000000004 /* LocationAuthorizationObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationAuthorizationObserver.swift; sourceTree = "<group>"; };
+		E30000000000000000000005 /* RouteRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRepositoryTests.swift; sourceTree = "<group>"; };
+		E30000000000000000000006 /* RecorderModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModelTests.swift; sourceTree = "<group>"; };
+		E30000000000000000000007 /* LocationAuthorizationObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationAuthorizationObserverTests.swift; sourceTree = "<group>"; };
 		1447DC297F10409C3FE36B00 /* RouteStoreFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStoreFiles.swift; sourceTree = "<group>"; };
 		1DAE0014269DE4005B2D18D4 /* RouteSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSample.swift; sourceTree = "<group>"; };
 		3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageValidationApp.swift; sourceTree = "<group>"; };
@@ -39,9 +53,20 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		E50000000000000000000001 /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				E30000000000000000000002 /* RecorderModel.swift */,
+				E30000000000000000000003 /* RecorderLifecycleSupport.swift */,
+				E30000000000000000000004 /* LocationAuthorizationObserver.swift */,
+			);
+			path = Location;
+			sourceTree = "<group>";
+		};
 		56EC6B276661FB3EE367A7F7 /* Keepsake */ = {
 			isa = PBXGroup;
 			children = (
+				E50000000000000000000001 /* Location */,
 				F01F150ECFE684A1348565CB /* Domain */,
 				5B58DFA14FC6907801328B24 /* Storage */,
 			);
@@ -70,6 +95,9 @@
 		D14CA9F04A0B859DE725AF61 /* KeepsakeTests */ = {
 			isa = PBXGroup;
 			children = (
+				E30000000000000000000005 /* RouteRepositoryTests.swift */,
+				E30000000000000000000006 /* RecorderModelTests.swift */,
+				E30000000000000000000007 /* LocationAuthorizationObserverTests.swift */,
 				4D3AA1A9CA610A83139890A0 /* RouteStoreTests.swift */,
 			);
 			path = KeepsakeTests;
@@ -87,6 +115,7 @@
 		F01F150ECFE684A1348565CB /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				E30000000000000000000001 /* RecordingState.swift */,
 				9AFBEAD063E61FA69ABFDAE2 /* RouteHistory.swift */,
 				1DAE0014269DE4005B2D18D4 /* RouteSample.swift */,
 			);
@@ -185,6 +214,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E40000000000000000000001 /* RecordingState.swift in Sources */,
+				E40000000000000000000002 /* RecorderModel.swift in Sources */,
+				E40000000000000000000003 /* RecorderLifecycleSupport.swift in Sources */,
+				E40000000000000000000004 /* LocationAuthorizationObserver.swift in Sources */,
 				EBF2721C3641C53624953700 /* RouteHistory.swift in Sources */,
 				F5922AFC62AF028B2D3E29C0 /* RouteRepository.swift in Sources */,
 				2B4444581BE6D6E7CC4A60A5 /* RouteSample.swift in Sources */,
@@ -198,6 +231,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E40000000000000000000005 /* RouteRepositoryTests.swift in Sources */,
+				E40000000000000000000006 /* RecorderModelTests.swift in Sources */,
+				E40000000000000000000007 /* LocationAuthorizationObserverTests.swift in Sources */,
 				33BA459207557854C68E8471 /* RouteStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

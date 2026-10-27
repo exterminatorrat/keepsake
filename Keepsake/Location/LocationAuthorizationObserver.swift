@@ -2,30 +2,41 @@ import CoreLocation
 import Foundation
 
 @MainActor
-final class LocationAuthorizationObserver: NSObject, CLLocationManagerDelegate {
+protocol LocationAuthorizationClient: AnyObject {
+    var authorization: LocationAuthorization { get }
+    var fullAccuracy: Bool { get }
+    var onChange: (() -> Void)? { get set }
+    func requestWhenInUseAuthorization()
+}
+
+protocol LocationServicesStatusSource: Sendable {
+    func servicesEnabled() async -> Bool
+}
+
+private struct SystemLocationServicesStatusSource: LocationServicesStatusSource {
+    func servicesEnabled() async -> Bool {
+        await Task.detached {
+            CLLocationManager.locationServicesEnabled()
+        }.value
+    }
+}
+
+@MainActor
+private final class CoreLocationAuthorizationClient: NSObject, CLLocationManagerDelegate, LocationAuthorizationClient {
     private let manager = CLLocationManager()
-    private(set) var servicesEnabled = false
     var onChange: (() -> Void)?
 
     override init() {
         super.init()
         manager.delegate = self
-        refreshServicesEnabled()
     }
 
-    var capabilities: LocationCapabilities {
-        LocationCapabilities(
-            servicesEnabled: servicesEnabled,
-            authorization: LocationAuthorization(manager.authorizationStatus),
-            fullAccuracy: manager.accuracyAuthorization == .fullAccuracy
-        )
+    var authorization: LocationAuthorization {
+        LocationAuthorization(manager.authorizationStatus)
     }
 
-    func refreshServicesEnabled() {
-        Task.detached { [weak self] in
-            let enabled = CLLocationManager.locationServicesEnabled()
-            await self?.setServicesEnabled(enabled)
-        }
+    var fullAccuracy: Bool {
+        manager.accuracyAuthorization == .fullAccuracy
     }
 
     func requestWhenInUseAuthorization() {
@@ -36,6 +47,81 @@ final class LocationAuthorizationObserver: NSObject, CLLocationManagerDelegate {
         Task { @MainActor [weak self] in
             self?.onChange?()
         }
+    }
+}
+
+@MainActor
+final class LocationAuthorizationObserver: RecorderAuthorizationObservation {
+    private let authorizationClient: any LocationAuthorizationClient
+    private let servicesStatusSource: any LocationServicesStatusSource
+    private(set) var servicesEnabled = false
+    var onChange: (() -> Void)?
+    private var servicesRefreshRevision = 0
+    private var servicesRefreshTask: Task<Void, Never>?
+
+    convenience init() {
+        self.init(
+            authorizationClient: CoreLocationAuthorizationClient(),
+            servicesStatusSource: SystemLocationServicesStatusSource()
+        )
+    }
+
+    init(
+        authorizationClient: any LocationAuthorizationClient,
+        servicesStatusSource: any LocationServicesStatusSource
+    ) {
+        self.authorizationClient = authorizationClient
+        self.servicesStatusSource = servicesStatusSource
+        authorizationClient.onChange = { [weak self] in
+            self?.refreshServicesEnabled()
+            self?.onChange?()
+        }
+        refreshServicesEnabled()
+    }
+
+    var capabilities: LocationCapabilities {
+        LocationCapabilities(
+            servicesEnabled: servicesEnabled,
+            authorization: authorizationClient.authorization,
+            fullAccuracy: authorizationClient.fullAccuracy
+        )
+    }
+
+    func refreshServicesEnabled() {
+        servicesRefreshRevision += 1
+        guard servicesRefreshTask == nil else {
+            return
+        }
+
+        servicesRefreshTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+            await self.refreshServicesUntilCurrent()
+        }
+    }
+
+    func requestWhenInUseAuthorization() {
+        authorizationClient.requestWhenInUseAuthorization()
+    }
+
+    private func refreshServicesUntilCurrent() async {
+        while !Task.isCancelled {
+            let revision = servicesRefreshRevision
+            let enabled = await servicesStatusSource.servicesEnabled()
+            guard !Task.isCancelled else {
+                break
+            }
+            guard revision == servicesRefreshRevision else {
+                continue
+            }
+
+            servicesRefreshTask = nil
+            setServicesEnabled(enabled)
+            return
+        }
+
+        servicesRefreshTask = nil
     }
 
     private func setServicesEnabled(_ enabled: Bool) {

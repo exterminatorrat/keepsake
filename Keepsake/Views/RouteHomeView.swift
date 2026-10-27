@@ -200,7 +200,7 @@ struct RouteHomeView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
-        .disabled(recorder.storageMessage != nil)
+        .disabled(!recorder.isRecordingRequested && (!recorder.isStorageReady || recorder.isClearingHistory || recorder.storageMessage != nil))
     }
 
     private var privacyControls: some View {
@@ -230,7 +230,7 @@ struct RouteHomeView: View {
                 confirmEraseHistory = true
             }
             .font(.caption)
-            .disabled(recorder.isRecordingRequested)
+            .disabled(recorder.isRecordingRequested || recorder.isClearingHistory)
         }
     }
 

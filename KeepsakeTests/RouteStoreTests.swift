@@ -620,6 +620,86 @@ struct RouteStoreTests {
         await reopened.close()
     }
 
+    @Test(arguments: [
+        RouteStoreFaultPoint.afterTransactionCommit,
+        .beforeTransactionFileSync,
+        .beforeTransactionDirectorySync
+    ])
+    func postCommitFaultRequiresReopenReconciliation(_ point: RouteStoreFaultPoint) async throws {
+        let fixture = try makeFixture()
+        defer { removeFixture(fixture.container) }
+        let initial = try StorageTestFactory.createNew(at: fixture.store)
+        await initial.close()
+        let failPostCommit = storageTestSeams(fault: { faultPoint in
+            if faultPoint == point {
+                throw RouteStoreError.injectedFault(faultPoint)
+            }
+        })
+        let writer = try StorageTestFactory.openExisting(at: fixture.store, seams: failPostCommit)
+        let now = Date(timeIntervalSinceReferenceDate: 2_000_000_000)
+        let sample = makeSample(
+            at: now.timeIntervalSinceReferenceDate - 60,
+            id: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
+            recordingID: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        )
+
+        await expectStoreError(.commitOutcomeUncertain) {
+            _ = try await writer.append(sample, now: now)
+        }
+        await expectStoreError(.storeClosed) {
+            _ = try await writer.load(now: now)
+        }
+        await writer.close()
+
+        let reopened = try StorageTestFactory.openExisting(at: fixture.store)
+        let loaded = try await reopened.load(now: now)
+        #expect(RouteStoreFiles.exactSamplesEquality(loaded.samples, [sample]))
+        #expect(loaded.samples.map(\.id) == [sample.id])
+        await reopened.close()
+    }
+
+    @Test func postCommitIdentityFailureIsUncertainAndReconcilesOnReopen() async throws {
+        let fixture = try makeFixture()
+        defer { removeFixture(fixture.container) }
+        let initial = try StorageTestFactory.createNew(at: fixture.store)
+        await initial.close()
+        let lockURL = fixture.store.appendingPathComponent(RouteStoreFiles.lockName)
+        let preservedLockURL = fixture.container.appendingPathComponent("preserved-synthetic-post-commit-lock")
+        let replaceLockAfterCommit = storageTestSeams(fault: { point in
+            guard point == .afterTransactionCommit else {
+                return
+            }
+            try FileManager.default.moveItem(at: lockURL, to: preservedLockURL)
+            guard FileManager.default.createFile(
+                atPath: lockURL.path,
+                contents: Data("synthetic replacement lock".utf8),
+                attributes: [.posixPermissions: 0o600]
+            ) else {
+                throw RouteStoreError.unsafePath
+            }
+        })
+        let writer = try StorageTestFactory.openExisting(at: fixture.store, seams: replaceLockAfterCommit)
+        let now = Date(timeIntervalSinceReferenceDate: 2_000_000_000)
+        let sample = makeSample(
+            at: now.timeIntervalSinceReferenceDate - 60,
+            id: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000003")),
+            recordingID: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000004"))
+        )
+
+        await expectStoreError(.commitOutcomeUncertain) {
+            _ = try await writer.append(sample, now: now)
+        }
+        await writer.close()
+        try FileManager.default.removeItem(at: lockURL)
+        try FileManager.default.moveItem(at: preservedLockURL, to: lockURL)
+
+        let reopened = try StorageTestFactory.openExisting(at: fixture.store)
+        let loaded = try await reopened.load(now: now)
+        #expect(RouteStoreFiles.exactSamplesEquality(loaded.samples, [sample]))
+        #expect(loaded.samples.map(\.id) == [sample.id])
+        await reopened.close()
+    }
+
     @Test func replacedLockIdentityRollsBackAppendAndPreservesTheOriginalLock() async throws {
         let fixture = try makeFixture()
         defer { removeFixture(fixture.container) }

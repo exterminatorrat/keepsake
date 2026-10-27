@@ -17,6 +17,10 @@ targets:
       - path: StorageValidationApp.swift
       - path: ../Keepsake/Domain/RouteSample.swift
       - path: ../Keepsake/Domain/RouteHistory.swift
+      - path: ../Keepsake/Domain/RecordingState.swift
+      - path: ../Keepsake/Location/RecorderModel.swift
+      - path: ../Keepsake/Location/RecorderLifecycleSupport.swift
+      - path: ../Keepsake/Location/LocationAuthorizationObserver.swift
       - path: ../Keepsake/Storage/RouteRepository.swift
       - path: ../Keepsake/Storage/RouteStore.swift
       - path: ../Keepsake/Storage/RouteStoreFiles.swift
@@ -35,6 +39,9 @@ targets:
     platform: iOS
     sources:
       - path: ../KeepsakeTests/RouteStoreTests.swift
+      - path: ../KeepsakeTests/RouteRepositoryTests.swift
+      - path: ../KeepsakeTests/RecorderModelTests.swift
+      - path: ../KeepsakeTests/LocationAuthorizationObserverTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:

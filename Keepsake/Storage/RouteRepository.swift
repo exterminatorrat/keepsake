@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 enum SampleIngestResult: Equatable, Sendable {
     case stored
@@ -16,15 +17,19 @@ struct RouteLoadResult: Sendable {
 enum RouteStorageError: Error, Equatable, Sendable {
     case unreadableArchive
     case corruptArchive
+    case protectionFailed
     case backupExclusionFailed
     case writeFailed
+    case writeOutcomeUncertain
 }
 
 actor RouteRepository {
     static let retentionDays = 90
 
-    private let fileURL: URL
+    private var fileURL: URL
+    private var trustedLocalApplicationSupportURL: URL?
     private let retentionInterval: TimeInterval
+    private let protectAndVerify: @Sendable (URL, RouteStoreProtectedItem) throws -> Void
     private var directoryURL: URL {
         fileURL.deletingLastPathComponent()
     }
@@ -33,18 +38,37 @@ actor RouteRepository {
     private var sampleIDs: Set<UUID> = []
     private var fingerprints: Set<RouteSampleFingerprint> = []
 
-    init(fileURL: URL, retentionDays: Int = 90) {
+    init(
+        fileURL: URL,
+        retentionDays: Int = 90,
+        protectAndVerify: (@Sendable (URL, RouteStoreProtectedItem) throws -> Void)? = nil
+    ) {
         self.fileURL = fileURL
+        trustedLocalApplicationSupportURL = nil
         retentionInterval = TimeInterval(max(1, retentionDays)) * 24 * 60 * 60
+        self.protectAndVerify = protectAndVerify ?? { url, item in
+            try Self.protectArchiveItem(url, as: item)
+        }
+    }
+
+    private init(localApplicationSupportURL: URL) {
+        fileURL = localApplicationSupportURL
+            .appendingPathComponent("Keepsake", isDirectory: true)
+            .appendingPathComponent("route-history.jsonl")
+        trustedLocalApplicationSupportURL = localApplicationSupportURL
+        retentionInterval = TimeInterval(Self.retentionDays) * 24 * 60 * 60
+        protectAndVerify = { url, item in
+            try Self.protectArchiveItem(url, as: item)
+        }
     }
 
     static func local() -> RouteRepository {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Keepsake", isDirectory: true)
-        return RouteRepository(fileURL: directory.appendingPathComponent("route-history.jsonl"))
+        return RouteRepository(localApplicationSupportURL: directory)
     }
 
     func load(now: Date = .now) throws -> RouteLoadResult {
+        try resolveTrustedLocalApplicationSupportURL()
         var recoveredIncompleteTail = false
 
         if !didLoad {
@@ -52,7 +76,15 @@ actor RouteRepository {
             didLoad = true
         }
 
-        try pruneExpired(now: now)
+        do {
+            try pruneExpired(now: now)
+        } catch {
+            if let storageError = error as? RouteStorageError,
+               storageError == .writeOutcomeUncertain {
+                didLoad = false
+            }
+            throw error
+        }
         return RouteLoadResult(samples: samples, recoveredIncompleteTail: recoveredIncompleteTail)
     }
 
@@ -84,17 +116,18 @@ actor RouteRepository {
         do {
             try appendLine(line)
         } catch {
-            throw RouteStorageError.writeFailed
+            didLoad = false
+            throw Self.storageError(for: error)
         }
 
         samples.append(sample)
         sampleIDs.insert(sample.id)
         fingerprints.insert(sample.fingerprint)
-        try pruneExpired(now: now)
         return .stored
     }
 
     func clear() throws {
+        try resolveTrustedLocalApplicationSupportURL()
         if FileManager.default.fileExists(atPath: fileURL.path) {
             do {
                 try FileManager.default.removeItem(at: fileURL)
@@ -114,7 +147,8 @@ actor RouteRepository {
             return false
         }
 
-        try excludeDirectoryFromBackup()
+        try protect(directoryURL, as: .directory)
+        try protect(fileURL, as: .file)
 
         let data: Data
         do {
@@ -166,6 +200,7 @@ actor RouteRepository {
     }
 
     private func appendLine(_ data: Data) throws {
+        var writeAttempted = false
         do {
             try prepareDirectory()
 
@@ -173,21 +208,29 @@ actor RouteRepository {
                 guard FileManager.default.createFile(
                     atPath: fileURL.path,
                     contents: Data(),
-                    attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
+                    attributes: [
+                        .posixPermissions: 0o600,
+                        .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication
+                    ]
                 ) else {
                     throw RouteStorageError.writeFailed
                 }
             }
 
+            try protect(fileURL, as: .file)
             let handle = try FileHandle(forWritingTo: fileURL)
             defer { try? handle.close() }
             try handle.seekToEnd()
+            writeAttempted = true
             try handle.write(contentsOf: data)
             try handle.synchronize()
-        } catch let error as RouteStorageError {
-            throw error
+            try protect(fileURL, as: .file)
+            try protect(directoryURL, as: .directory)
         } catch {
-            throw RouteStorageError.writeFailed
+            if writeAttempted {
+                throw RouteStorageError.writeOutcomeUncertain
+            }
+            throw Self.storageError(for: error)
         }
     }
 
@@ -226,17 +269,29 @@ actor RouteRepository {
             data.append(0x0A)
         }
 
+        try prepareDirectory()
+        let temporaryURL = directoryURL.appendingPathComponent(".route-history-\(UUID().uuidString).pending")
+        defer { try? FileManager.default.removeItem(at: temporaryURL) }
         do {
-            try prepareDirectory()
-            try data.write(to: fileURL, options: .atomic)
-            try FileManager.default.setAttributes(
-                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                ofItemAtPath: fileURL.path
+            try RouteStoreFiles.writeNewFile(
+                data,
+                at: temporaryURL,
+                readOnly: false,
+                seams: RouteStoreSeams(protectAndVerify: protectAndVerify)
             )
-        } catch let error as RouteStorageError {
-            throw error
+            try protect(temporaryURL, as: .file)
+            guard rename(temporaryURL.path, fileURL.path) == 0 else {
+                throw RouteStorageError.writeFailed
+            }
+            do {
+                try protect(fileURL, as: .file)
+                try RouteStoreFiles.synchronizeFile(fileURL)
+                try RouteStoreFiles.synchronizeDirectory(directoryURL)
+            } catch {
+                throw RouteStorageError.writeOutcomeUncertain
+            }
         } catch {
-            throw RouteStorageError.writeFailed
+            throw Self.storageError(for: error)
         }
     }
 
@@ -247,17 +302,99 @@ actor RouteRepository {
             throw RouteStorageError.writeFailed
         }
 
-        try excludeDirectoryFromBackup()
+        try protect(directoryURL, as: .directory)
     }
 
-    private func excludeDirectoryFromBackup() throws {
+    private func resolveTrustedLocalApplicationSupportURL() throws {
+        guard let trustedURL = trustedLocalApplicationSupportURL else {
+            return
+        }
+
+        var path = trustedURL.path
+        guard trustedURL.isFileURL,
+              trustedURL.host == nil || trustedURL.host == "" || trustedURL.host == "localhost",
+              path.hasPrefix("/"),
+              !path.contains("\0"),
+              path.split(separator: "/").allSatisfy({ $0 != "." && $0 != ".." }) else {
+            throw RouteStorageError.writeFailed
+        }
+
+        var missingComponents: [String] = []
+        while true {
+            if let resolved = realpath(path, nil) {
+                defer { Darwin.free(resolved) }
+                var info = stat()
+                guard lstat(resolved, &info) == 0,
+                      (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFDIR) else {
+                    throw RouteStorageError.writeFailed
+                }
+                var canonicalPath = String(cString: resolved)
+                for component in missingComponents.reversed() {
+                    canonicalPath = (canonicalPath as NSString).appendingPathComponent(component)
+                }
+                fileURL = URL(fileURLWithPath: canonicalPath, isDirectory: true)
+                    .appendingPathComponent("Keepsake", isDirectory: true)
+                    .appendingPathComponent("route-history.jsonl")
+                trustedLocalApplicationSupportURL = nil
+                return
+            }
+
+            var info = stat()
+            guard lstat(path, &info) != 0,
+                  errno == ENOENT else {
+                throw RouteStorageError.writeFailed
+            }
+            let component = (path as NSString).lastPathComponent
+            let parentPath = (path as NSString).deletingLastPathComponent
+            guard !component.isEmpty,
+                  component != ".",
+                  component != "..",
+                  parentPath != path else {
+                throw RouteStorageError.writeFailed
+            }
+            missingComponents.append(component)
+            path = parentPath
+        }
+    }
+
+    private func protect(_ url: URL, as item: RouteStoreProtectedItem) throws {
         do {
-            var directory = directoryURL
-            var resourceValues = URLResourceValues()
-            resourceValues.isExcludedFromBackup = true
-            try directory.setResourceValues(resourceValues)
+            try protectAndVerify(url, item)
         } catch {
-            throw RouteStorageError.backupExclusionFailed
+            throw Self.storageError(for: error)
+        }
+    }
+
+    private static func protectArchiveItem(_ url: URL, as item: RouteStoreProtectedItem) throws {
+        do {
+            if item == .file {
+                try RouteStoreFiles.validateOwnedRegularFile(url, requirePrivate: false)
+                do {
+                    try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+                } catch {
+                    throw RouteStorageError.protectionFailed
+                }
+            }
+            try RouteStoreFiles.protectAndVerify(url, as: item)
+        } catch {
+            throw storageError(for: error)
+        }
+    }
+
+    private static func storageError(for error: Error) -> RouteStorageError {
+        if let storageError = error as? RouteStorageError {
+            return storageError
+        }
+        guard let storeError = error as? RouteStoreError else {
+            return .writeFailed
+        }
+        switch storeError {
+        case .protectionFailed:
+            return .protectionFailed
+        case .backupExclusionFailed:
+            return .backupExclusionFailed
+        default:
+            return .writeFailed
         }
     }
 }
