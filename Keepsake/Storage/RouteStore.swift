@@ -2265,7 +2265,7 @@ private enum RouteStoreSQLite {
     }
 
     static func insertionHighWaterSequence(_ database: OpaquePointer) throws -> Int64 {
-        let highWater = try withStatement(database, sql: "SELECT seq FROM sqlite_sequence WHERE name = 'route_samples'") { statement in
+        let highWater: Int64 = try withStatement(database, sql: "SELECT seq FROM sqlite_sequence WHERE name = 'route_samples'") { statement in
             let status = sqlite3_step(statement)
             if status == SQLITE_DONE {
                 return 0
