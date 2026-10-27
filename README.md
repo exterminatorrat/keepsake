@@ -40,6 +40,8 @@ This is a curated source checkpoint, not a release. The portable isolated host a
 
 The earlier original local staging result remains part of the provenance: 53 passed, one failed and two hardware-only checks were skipped among 56 selected tests. The new narrow run did not rerun the other three suites, compile the main app target or validate Wave 2, hardware protection, field coverage or app resource performance.
 
+The combined isolated host at PR3 commit `628b0d3` subsequently built unsigned and ran 80 tests across five suites: 77 passed, one parameterized metadata-fault declaration failed, and two hardware-only checks skipped. Its fault selector has a source-only normalization correction awaiting rerun. This does not establish an overall Wave 2 pass, a main-app build, hardware protection or field/resource performance.
+
 ## Scope boundary
 
 Default-store integration, bounded history queries and measured resource use remain planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.
