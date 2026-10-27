@@ -1,0 +1,55 @@
+name: KeepsakeStorageValidation
+options:
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1,2"
+targets:
+  KeepsakeStorageValidation:
+    type: application
+    platform: iOS
+    sources:
+      - path: StorageValidationApp.swift
+      - path: ../Keepsake/Domain/RouteSample.swift
+      - path: ../Keepsake/Domain/RouteHistory.swift
+      - path: ../Keepsake/Storage/RouteRepository.swift
+      - path: ../Keepsake/Storage/RouteStore.swift
+      - path: ../Keepsake/Storage/RouteStoreFiles.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_BUNDLE_IDENTIFIER)"
+        PRODUCT_MODULE_NAME: Keepsake
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Keepsake Storage Test
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        ENABLE_TESTABILITY: YES
+        OTHER_LDFLAGS: "$(inherited) -lsqlite3"
+  StorageValidationTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ../KeepsakeTests/RouteStoreTests.swift
+    dependencies:
+      - target: KeepsakeStorageValidation
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER)"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  KeepsakeStorageValidation:
+    build:
+      targets:
+        KeepsakeStorageValidation: all
+        StorageValidationTests: [test]
+    test:
+      targets:
+        - StorageValidationTests
+      parallelizable: false

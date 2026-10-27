@@ -1,0 +1,450 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2B4444581BE6D6E7CC4A60A5 /* RouteSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAE0014269DE4005B2D18D4 /* RouteSample.swift */; };
+		33BA459207557854C68E8471 /* RouteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3AA1A9CA610A83139890A0 /* RouteStoreTests.swift */; };
+		5C66EC18069BA766158F8A54 /* StorageValidationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */; };
+		CE0DFEDD54390AD9824CB8EE /* RouteStoreFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1447DC297F10409C3FE36B00 /* RouteStoreFiles.swift */; };
+		EBF2721C3641C53624953700 /* RouteHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFBEAD063E61FA69ABFDAE2 /* RouteHistory.swift */; };
+		EF047ABDB3B7535B9DC909E2 /* RouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5B9FD21AAB05E506A03BAF /* RouteStore.swift */; };
+		F5922AFC62AF028B2D3E29C0 /* RouteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5306C77C9E9139F8594599E5 /* RouteRepository.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9E414C97ACA4EAC66B705656 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F79913EC7E3142C22C1CE66 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A660B3CEABC248C479BC72D;
+			remoteInfo = KeepsakeStorageValidation;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1447DC297F10409C3FE36B00 /* RouteStoreFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStoreFiles.swift; sourceTree = "<group>"; };
+		1DAE0014269DE4005B2D18D4 /* RouteSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSample.swift; sourceTree = "<group>"; };
+		3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageValidationApp.swift; sourceTree = "<group>"; };
+		4C5B9FD21AAB05E506A03BAF /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
+		4D3AA1A9CA610A83139890A0 /* RouteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStoreTests.swift; sourceTree = "<group>"; };
+		5306C77C9E9139F8594599E5 /* RouteRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRepository.swift; sourceTree = "<group>"; };
+		77592125C230065016178062 /* StorageValidationTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StorageValidationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9AFBEAD063E61FA69ABFDAE2 /* RouteHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistory.swift; sourceTree = "<group>"; };
+		C990B86A1FBE4817FF7BC635 /* KeepsakeStorageValidation.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = KeepsakeStorageValidation.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		56EC6B276661FB3EE367A7F7 /* Keepsake */ = {
+			isa = PBXGroup;
+			children = (
+				F01F150ECFE684A1348565CB /* Domain */,
+				5B58DFA14FC6907801328B24 /* Storage */,
+			);
+			path = Keepsake;
+			sourceTree = "<group>";
+		};
+		5B58DFA14FC6907801328B24 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				5306C77C9E9139F8594599E5 /* RouteRepository.swift */,
+				4C5B9FD21AAB05E506A03BAF /* RouteStore.swift */,
+				1447DC297F10409C3FE36B00 /* RouteStoreFiles.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		C2B1D0797C89C9AC23599D7E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C990B86A1FBE4817FF7BC635 /* KeepsakeStorageValidation.app */,
+				77592125C230065016178062 /* StorageValidationTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D14CA9F04A0B859DE725AF61 /* KeepsakeTests */ = {
+			isa = PBXGroup;
+			children = (
+				4D3AA1A9CA610A83139890A0 /* RouteStoreTests.swift */,
+			);
+			path = KeepsakeTests;
+			sourceTree = "<group>";
+		};
+		E2DA7A57E1BA71F2A1A6D29B = {
+			isa = PBXGroup;
+			children = (
+				3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */,
+				F6F1B2EF6E0D6482C6C6F2E6 /* keepsake */,
+				C2B1D0797C89C9AC23599D7E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F01F150ECFE684A1348565CB /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				9AFBEAD063E61FA69ABFDAE2 /* RouteHistory.swift */,
+				1DAE0014269DE4005B2D18D4 /* RouteSample.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		F6F1B2EF6E0D6482C6C6F2E6 /* keepsake */ = {
+			isa = PBXGroup;
+			children = (
+				56EC6B276661FB3EE367A7F7 /* Keepsake */,
+				D14CA9F04A0B859DE725AF61 /* KeepsakeTests */,
+			);
+			name = keepsake;
+			path = ..;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A660B3CEABC248C479BC72D /* KeepsakeStorageValidation */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1306E85D608201C86B40125D /* Build configuration list for PBXNativeTarget "KeepsakeStorageValidation" */;
+			buildPhases = (
+				2249D4EAF951C252A3EDDA6C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KeepsakeStorageValidation;
+			packageProductDependencies = (
+			);
+			productName = KeepsakeStorageValidation;
+			productReference = C990B86A1FBE4817FF7BC635 /* KeepsakeStorageValidation.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9DCAF6E0A000E88541E290B4 /* StorageValidationTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CFDC398D84A63559776695D8 /* Build configuration list for PBXNativeTarget "StorageValidationTests" */;
+			buildPhases = (
+				63EF2E3385C1BE91CA2337CF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1CCA45D107096E0485A94E72 /* PBXTargetDependency */,
+			);
+			name = StorageValidationTests;
+			packageProductDependencies = (
+			);
+			productName = StorageValidationTests;
+			productReference = 77592125C230065016178062 /* StorageValidationTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8F79913EC7E3142C22C1CE66 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1A660B3CEABC248C479BC72D = {
+						DevelopmentTeam = 8VD2T36ADD;
+						ProvisioningStyle = Automatic;
+					};
+					9DCAF6E0A000E88541E290B4 = {
+						DevelopmentTeam = 8VD2T36ADD;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C194D05DBAED1BC96767072B /* Build configuration list for PBXProject "KeepsakeStorageValidation" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = E2DA7A57E1BA71F2A1A6D29B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C2B1D0797C89C9AC23599D7E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A660B3CEABC248C479BC72D /* KeepsakeStorageValidation */,
+				9DCAF6E0A000E88541E290B4 /* StorageValidationTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2249D4EAF951C252A3EDDA6C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EBF2721C3641C53624953700 /* RouteHistory.swift in Sources */,
+				F5922AFC62AF028B2D3E29C0 /* RouteRepository.swift in Sources */,
+				2B4444581BE6D6E7CC4A60A5 /* RouteSample.swift in Sources */,
+				EF047ABDB3B7535B9DC909E2 /* RouteStore.swift in Sources */,
+				CE0DFEDD54390AD9824CB8EE /* RouteStoreFiles.swift in Sources */,
+				5C66EC18069BA766158F8A54 /* StorageValidationApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		63EF2E3385C1BE91CA2337CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				33BA459207557854C68E8471 /* RouteStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1CCA45D107096E0485A94E72 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A660B3CEABC248C479BC72D /* KeepsakeStorageValidation */;
+			targetProxy = 9E414C97ACA4EAC66B705656 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0C7A0F41EE9778ED46C0493A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation";
+			};
+			name = Debug;
+		};
+		2DAF5B369D5B42B92A5ABCE7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		83E981C4EE3FE03948AF9B7A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Keepsake Storage Test";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_VALIDATION_BUNDLE_IDENTIFIER)";
+				PRODUCT_MODULE_NAME = Keepsake;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		95F6B3B59EB6A828F3DBAEFC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CA9BAB97D8FD62055FE49498 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Keepsake Storage Test";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_VALIDATION_BUNDLE_IDENTIFIER)";
+				PRODUCT_MODULE_NAME = Keepsake;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F055450882F0DED068082EA8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1306E85D608201C86B40125D /* Build configuration list for PBXNativeTarget "KeepsakeStorageValidation" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				83E981C4EE3FE03948AF9B7A /* Debug */,
+				CA9BAB97D8FD62055FE49498 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C194D05DBAED1BC96767072B /* Build configuration list for PBXProject "KeepsakeStorageValidation" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2DAF5B369D5B42B92A5ABCE7 /* Debug */,
+				95F6B3B59EB6A828F3DBAEFC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CFDC398D84A63559776695D8 /* Build configuration list for PBXNativeTarget "StorageValidationTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0C7A0F41EE9778ED46C0493A /* Debug */,
+				F055450882F0DED068082EA8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8F79913EC7E3142C22C1CE66 /* Project object */;
+}
