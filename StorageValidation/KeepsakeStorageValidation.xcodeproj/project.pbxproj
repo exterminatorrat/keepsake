@@ -180,11 +180,9 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					1A660B3CEABC248C479BC72D = {
-						DevelopmentTeam = 8VD2T36ADD;
 						ProvisioningStyle = Automatic;
 					};
 					9DCAF6E0A000E88541E290B4 = {
-						DevelopmentTeam = 8VD2T36ADD;
 						ProvisioningStyle = Automatic;
 					};
 				};
