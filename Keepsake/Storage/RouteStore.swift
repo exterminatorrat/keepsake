@@ -1455,7 +1455,9 @@ private final class RouteStoreCore {
             guard try seams.readProtection(url) == .completeUntilFirstUserAuthentication else {
                 throw RouteStoreError.protectionFailed
             }
-            let values = try url.resourceValues(forKeys: [.isExcludedFromBackupKey])
+            var currentURL = url
+            currentURL.removeCachedResourceValue(forKey: .isExcludedFromBackupKey)
+            let values = try currentURL.resourceValues(forKeys: [.isExcludedFromBackupKey])
             guard values.isExcludedFromBackup == true else {
                 throw RouteStoreError.backupExclusionFailed
             }

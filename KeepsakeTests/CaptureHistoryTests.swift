@@ -6,8 +6,8 @@ import Testing
 @testable import Keepsake
 
 struct CaptureHistoryTests {
-    @Test(arguments: [1, 3])
-    func pageProtectionFailureClosesTheWriterBeforeOrAfterReadCommit(failingCheck: Int) async throws {
+    @Test(arguments: [1, 3], [false, true])
+    func pageProtectionFailureClosesTheWriterBeforeOrAfterReadCommit(failingCheck: Int, backupFailure: Bool) async throws {
         let fixture = try captureHistoryFixture()
         defer { captureHistoryRemoveFixture(fixture.container) }
         let checks = Mutex(0)
@@ -18,14 +18,21 @@ struct CaptureHistoryTests {
                     return value
                 }
                 if count >= failingCheck {
-                    return nil
+                    if backupFailure {
+                        var mutableURL = url
+                        var values = URLResourceValues()
+                        values.isExcludedFromBackup = false
+                        try mutableURL.setResourceValues(values)
+                    } else {
+                        return nil
+                    }
                 }
             }
             return try captureHistoryReadProtection(url)
         })
         let store = try CaptureHistoryStoreFactory.create(at: fixture.store, seams: seams)
         let now = Date.now
-        await expectCaptureHistoryError(.unavailable(.protectionFailed)) {
+        await expectCaptureHistoryError(.unavailable(backupFailure ? .backupExclusionFailed : .protectionFailed)) {
             _ = try await store.readPage(
                 interval: CapturePageInterval(start: now.addingTimeInterval(-1), end: now),
                 now: now,
