@@ -36,7 +36,9 @@ An explicitly created schema-v2 store now provides durable capture epochs, Begin
 
 ## Validation status
 
-This is a curated source checkpoint, not a release. Original local Wave 1 staging compiled and completed 56 selected Swift Testing tests: 53 passed, one failed and two hardware-only checks were skipped. The failed regression compared independently encoded JSON bytes; its correction now checks exact prepared-to-published bytes and bit-exact decoded sample values, but has not been compiled or rerun. The portable published configuration also remains uncompiled. Static review and simulator checks do not establish field coverage, battery use or hardware protection.
+This is a curated source checkpoint, not a release. The portable isolated host at commit `49a6c1f` built unsigned with the iOS Simulator 27.1 SDK, and all nine `RouteRepositoryTests` passed on iOS 26.5, including the corrected post-rename regression. The test now checks exact prepared-to-published bytes and bit-exact decoded sample values without assuming a stable key order across independent JSON encodings.
+
+The earlier original local staging result remains part of the provenance: 53 passed, one failed and two hardware-only checks were skipped among 56 selected tests. The new narrow run did not rerun the other three suites, compile the main app target or validate Wave 2, hardware protection, field coverage or app resource performance.
 
 ## Scope boundary
 
