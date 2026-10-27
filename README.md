@@ -36,7 +36,7 @@ An explicitly created schema-v2 store now provides durable capture epochs, Begin
 
 ## Validation status
 
-This is a curated source checkpoint, not a release. The published snapshot has not been compiled or test-executed. Static source/project review does not establish runtime correctness, field coverage, battery use or hardware protection.
+This is a curated source checkpoint, not a release. Original local Wave 1 staging compiled and completed 56 selected Swift Testing tests: 53 passed, one failed and two hardware-only checks were skipped. The failed regression compared independently encoded JSON bytes; its correction now checks exact prepared-to-published bytes and bit-exact decoded sample values, but has not been compiled or rerun. The portable published configuration also remains uncompiled. Static review and simulator checks do not establish field coverage, battery use or hardware protection.
 
 ## Scope boundary
 

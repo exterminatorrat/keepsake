@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import Synchronization
 import Testing
 @testable import Keepsake
 
@@ -192,7 +193,17 @@ struct RouteRepositoryTests {
         original.append(partialTail)
         try original.write(to: fixture.fileURL)
         let fileName = fixture.fileURL.lastPathComponent
+        let preparedPayload = Mutex<Data?>(nil)
         let rejectPublishedRewrite: @Sendable (URL, RouteStoreProtectedItem) throws -> Void = { url, item in
+            if item == .file,
+               url.lastPathComponent.hasPrefix(".route-history-"),
+               url.pathExtension == "pending" {
+                let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                if ((attributes[.size] as? NSNumber)?.intValue ?? 0) > 0 {
+                    let data = try Data(contentsOf: url)
+                    preparedPayload.withLock { $0 = data }
+                }
+            }
             if item == .file && url.lastPathComponent == fileName {
                 let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
                 if (attributes[.size] as? NSNumber)?.intValue == rewrittenSize {
@@ -206,7 +217,14 @@ struct RouteRepositoryTests {
         await expectRouteStorageError(.writeOutcomeUncertain) {
             _ = try await repository.load(now: Date(timeIntervalSince1970: 1_000_000))
         }
-        #expect(try Data(contentsOf: fixture.fileURL) == rewrittenArchive)
+        let prepared = try #require(preparedPayload.withLock { $0 })
+        let published = try Data(contentsOf: fixture.fileURL)
+        #expect(!prepared.isEmpty)
+        #expect(published == prepared)
+        #expect(published.last == 0x0A)
+        #expect(published.filter { $0 == 0x0A }.count == 1)
+        let decoded = try JSONDecoder().decode(RouteSample.self, from: Data(published.dropLast()))
+        #expect(RouteStoreFiles.exactSamplesEquality([decoded], [sample]))
         let reopened = try await makeTestRepository(fileURL: fixture.fileURL).load(now: Date(timeIntervalSince1970: 1_000_000))
         #expect(!reopened.recoveredIncompleteTail)
         #expect(reopened.samples == [sample])
