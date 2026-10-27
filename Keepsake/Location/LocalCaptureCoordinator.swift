@@ -16,7 +16,7 @@ enum LocalCaptureUncertaintyKind: Equatable {
     case stop
 }
 
-enum LocalCaptureUncertaintyReason: Equatable {
+enum LocalCaptureUncertaintyReason: Equatable, Sendable {
     case persistenceOutcome
     case receiptMismatch
     case receiptUnavailable
@@ -54,12 +54,12 @@ enum LocalCaptureCoordinatorError: Error, Equatable {
     case receiptMismatch(UUID)
 }
 
-enum LocalCaptureStopResult: Equatable {
+enum LocalCaptureStopResult: Equatable, Sendable {
     case stopped(CaptureControlReceipt)
     case alreadyStopped(CaptureControlSnapshot)
 }
 
-enum LocalCaptureReconciliationResult: Equatable {
+enum LocalCaptureReconciliationResult: Equatable, Sendable {
     case beginCommitted(CaptureControlReceipt)
     case appendCommitted(CaptureBatchReceipt)
     case appendSamplesMatched(UUID)
@@ -1199,7 +1199,7 @@ final class LocalCaptureCoordinator {
         return receiptWasReturned ? .receiptMismatch : .persistenceOutcome
     }
 
-    private func resume<Value>(
+    private func resume<Value: Sendable>(
         _ waiters: inout [CheckedContinuation<Value, any Error>],
         returning value: Value
     ) {
