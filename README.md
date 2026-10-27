@@ -42,7 +42,7 @@ This is a curated source checkpoint, not a release. The portable isolated host a
 
 The earlier original local staging result remains part of the provenance: 53 passed, one failed and two hardware-only checks were skipped among 56 selected tests. The new narrow run did not rerun the other three suites, compile the main app target or validate Wave 2, hardware protection, field coverage or app resource performance.
 
-The combined isolated host at PR3 commit `628b0d3` subsequently built unsigned and ran 80 tests across five suites: 77 passed, one parameterized metadata-fault declaration failed, and two hardware-only checks skipped. Its fault selector has a source-only normalization correction awaiting rerun. This does not establish an overall Wave 2 pass, a main-app build, hardware protection or field/resource performance.
+The corrected combined isolated host at PR3 commit `8e4c2eb` built unsigned with SDK 27.1 and completed 80 tests across five suites: 78 passed, none failed, and two hardware-only checks skipped. All four metadata-fault boundary cases passed with the normalized selector and exact injection-count assertion. This qualifies that synthetic snapshot, not the main app, hardware protection or field/resource performance. The earlier `628b0d3` build's 77-pass/1-fail/2-skip result remains preserved.
 
 ## Scope boundary
 
