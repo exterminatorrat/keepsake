@@ -5,6 +5,32 @@ import Testing
 @MainActor
 struct LocalCaptureCoordinatorTests {
     @Test(.timeLimit(.minutes(1)))
+    func historyMaintenanceDuringAppendDoesNotStopTheRecordingOwner() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        let input = try makeInput(recordingID: epoch.recordingID, count: 1, startingAt: 1)
+        await store.gateNextAppend()
+
+        let append = Task {
+            try await coordinator.append(input, now: Date(timeIntervalSinceReferenceDate: 100))
+        }
+        await store.waitForAppendCall()
+        await store.advanceHistoryDeletionRevision()
+        await store.releaseAppend()
+        let receipt = try await append.value
+
+        #expect(receipt.items.allSatisfy { $0.disposition == .stored })
+        #expect(coordinator.controlSnapshot?.deletionRevision == 1)
+        #expect(coordinator.controlSnapshot?.activeEpoch == epoch)
+        #expect(coordinator.isAcceptingSamples)
+        #expect(coordinator.pendingSampleCount == 0)
+        #expect(runtime.startedEpochs == [epoch])
+        #expect(runtime.stopCallCount == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func beginReceiptPrecedesRuntimeAndRepeatedStartReusesTheOwner() async throws {
         let store = CoordinatorPersistenceFake()
         let runtime = CoordinatorRuntimeFake()
@@ -517,7 +543,12 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
             controlRevision: revision,
             commandDigest: digest
         )
-        control = CaptureControlSnapshot(revision: revision, activeEpoch: epoch, lastControlReceipt: receipt)
+        control = CaptureControlSnapshot(
+            revision: revision, activeEpoch: epoch, lastControlReceipt: receipt,
+            deletionRevision: control.deletionRevision,
+            clearedThroughSequence: control.clearedThroughSequence,
+            lastClearReceipt: control.lastClearReceipt
+        )
         receipts[operationID] = .control(receipt)
         events.append("begin.committed")
         if beginUncertainAfterCommit {
@@ -623,7 +654,12 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
             controlRevision: revision,
             commandDigest: digest
         )
-        control = CaptureControlSnapshot(revision: revision, activeEpoch: nil, lastControlReceipt: receipt)
+        control = CaptureControlSnapshot(
+            revision: revision, activeEpoch: nil, lastControlReceipt: receipt,
+            deletionRevision: control.deletionRevision,
+            clearedThroughSequence: control.clearedThroughSequence,
+            lastClearReceipt: control.lastClearReceipt
+        )
         receipts[operationID] = .control(receipt)
         events.append("stop.committed")
         if behavior == .uncertainAfterCommit {
@@ -658,6 +694,14 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
 
     func gateNextBegin() { beginGated = true }
     func gateNextAppend() { appendGated = true }
+    func advanceHistoryDeletionRevision() {
+        control = CaptureControlSnapshot(
+            revision: control.revision, activeEpoch: control.activeEpoch, lastControlReceipt: control.lastControlReceipt,
+            deletionRevision: control.deletionRevision + 1,
+            clearedThroughSequence: control.clearedThroughSequence,
+            lastClearReceipt: control.lastClearReceipt
+        )
+    }
     func setNextBeginUncertainAfterCommit() { beginUncertainAfterCommit = true }
     func setReceiptLookupUnavailable(_ unavailable: Bool) { lookupUnavailable = unavailable }
     func setNextStopBehavior(_ behavior: FakeStopBehavior) { nextStopBehavior = behavior }
@@ -698,7 +742,12 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
             controlRevision: revision,
             commandDigest: CaptureCommandDigest.stop(epoch: epoch, expectedControlRevision: control.revision)
         )
-        control = CaptureControlSnapshot(revision: revision, activeEpoch: nil, lastControlReceipt: receipt)
+        control = CaptureControlSnapshot(
+            revision: revision, activeEpoch: nil, lastControlReceipt: receipt,
+            deletionRevision: control.deletionRevision,
+            clearedThroughSequence: control.clearedThroughSequence,
+            lastClearReceipt: control.lastClearReceipt
+        )
         receipts[operationID] = .control(receipt)
         return receipt
     }
@@ -720,7 +769,12 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
                 expectedControlRevision: control.revision
             )
         )
-        control = CaptureControlSnapshot(revision: revision, activeEpoch: epoch, lastControlReceipt: receipt)
+        control = CaptureControlSnapshot(
+            revision: revision, activeEpoch: epoch, lastControlReceipt: receipt,
+            deletionRevision: control.deletionRevision,
+            clearedThroughSequence: control.clearedThroughSequence,
+            lastClearReceipt: control.lastClearReceipt
+        )
         receipts[operationID] = .control(receipt)
         return receipt
     }

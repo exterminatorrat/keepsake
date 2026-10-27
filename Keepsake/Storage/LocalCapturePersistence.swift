@@ -23,6 +23,93 @@ struct CaptureControlSnapshot: Codable, Equatable, Sendable {
     let revision: Int64
     let activeEpoch: CaptureEpoch?
     let lastControlReceipt: CaptureControlReceipt?
+    let deletionRevision: Int64
+    let clearedThroughSequence: Int64
+    let lastClearReceipt: CaptureClearReceipt?
+
+    init(
+        revision: Int64,
+        activeEpoch: CaptureEpoch?,
+        lastControlReceipt: CaptureControlReceipt?,
+        deletionRevision: Int64 = 0,
+        clearedThroughSequence: Int64 = 0,
+        lastClearReceipt: CaptureClearReceipt? = nil
+    ) {
+        self.revision = revision
+        self.activeEpoch = activeEpoch
+        self.lastControlReceipt = lastControlReceipt
+        self.deletionRevision = deletionRevision
+        self.clearedThroughSequence = clearedThroughSequence
+        self.lastClearReceipt = lastClearReceipt
+    }
+
+    func hasSameRecordingIntent(as other: Self) -> Bool {
+        revision == other.revision
+            && activeEpoch == other.activeEpoch
+            && lastControlReceipt == other.lastControlReceipt
+    }
+
+    var hasValidHistoryState: Bool {
+        guard deletionRevision >= 0, clearedThroughSequence >= 0 else {
+            return false
+        }
+        guard let receipt = lastClearReceipt else {
+            return clearedThroughSequence == 0
+        }
+        return receipt.controlRevision >= 0
+            && receipt.controlRevision <= revision
+            && (receipt.controlRevision != revision || activeEpoch == nil)
+            && receipt.deletionRevision >= 0
+            && receipt.deletionRevision <= deletionRevision
+            && receipt.clearedThroughSequence == clearedThroughSequence
+            && (clearedThroughSequence == 0 || receipt.deletionRevision > 0)
+            && receipt.operationID != lastControlReceipt?.operationID
+            && receipt.commandDigest == CaptureCommandDigest.clear(expectedControlRevision: receipt.controlRevision)
+    }
+}
+
+struct CaptureClearReceipt: Codable, Equatable, Sendable {
+    let operationID: UUID
+    let controlRevision: Int64
+    let deletionRevision: Int64
+    let clearedThroughSequence: Int64
+    let commandDigest: String
+}
+
+struct CapturePruneReceipt: Codable, Equatable, Sendable {
+    let operationID: UUID
+    let commandDigest: String
+    let deletionRevision: Int64
+    let deletedRows: Int
+    let deletedPayloadBytes: Int
+    let hasMore: Bool
+}
+
+struct CapturePageInterval: Equatable, Sendable {
+    let start: Date
+    let end: Date
+}
+
+struct CapturePageCursor: Equatable, Sendable {
+    let storeOpenID: UUID
+    let interval: CapturePageInterval
+    let queryNow: Date
+    let highWaterSequence: Int64
+    let deletionRevision: Int64
+    let lastObservedAt: Date
+    let lastSequence: Int64
+}
+
+struct CaptureSampleEnvelope: Equatable, Sendable {
+    let sample: RouteSample
+    let epoch: CaptureEpoch
+    let sequence: Int64
+}
+
+struct CapturePage: Equatable, Sendable {
+    let items: [CaptureSampleEnvelope]
+    let encodedPayloadBytes: Int
+    let nextCursor: CapturePageCursor?
 }
 
 struct CaptureSampleResult: Codable, Equatable, Sendable {
@@ -40,6 +127,8 @@ struct CaptureBatchReceipt: Codable, Equatable, Sendable {
 enum CaptureReceipt: Codable, Equatable, Sendable {
     case control(CaptureControlReceipt)
     case batch(CaptureBatchReceipt)
+    case clear(CaptureClearReceipt)
+    case prune(CapturePruneReceipt)
 }
 
 enum CaptureReceiptLookup: Equatable, Sendable {
@@ -67,6 +156,11 @@ enum CapturePersistenceError: Error, Equatable, Sendable {
     case revisionExhausted
     case operationConflict
     case batchTooLarge
+    case invalidHistoryRequest
+    case invalidCursor
+    case cursorInvalidated
+    case oversizedRecord(UUID)
+    case recordingActive
     case outcomeUncertain(UUID)
     case notCommitted(RouteStoreError)
     case unavailable(RouteStoreError)
@@ -79,6 +173,10 @@ enum CapturePersistenceLimits {
     static let maximumReceiptBytes = 8 * 1_024 * 1_024
     static let maximumControlPayloadBytes = 4 * 1_024
     static let maximumReceiptPayloadBytes = 16 * 1_024
+    static let maximumPageRows = 256
+    static let maximumPagePayloadBytes = 256 * 1_024
+    static let maximumPruneRows = 256
+    static let maximumPrunePayloadBytes = 256 * 1_024
     static let receiptRetention: TimeInterval = 7 * 24 * 60 * 60
 }
 
@@ -104,6 +202,14 @@ struct CaptureBatchInput: Sendable {
 }
 
 enum CaptureCommandDigest {
+    static func clear(expectedControlRevision: Int64) -> String {
+        digest("capture-v2|clear|\(expectedControlRevision)")
+    }
+
+    static func prune(now: Date, limit: Int) -> String {
+        digest("capture-v2|prune|\(now.timeIntervalSinceReferenceDate.bitPattern)|\(limit)")
+    }
+
     static func begin(recordingID: UUID, expectedControlRevision: Int64) -> String {
         digest("capture-v2|begin|\(recordingID.uuidString)|\(expectedControlRevision)")
     }

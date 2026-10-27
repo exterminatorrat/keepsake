@@ -3,6 +3,73 @@ import Testing
 @testable import Keepsake
 
 struct LocalCapturePersistenceTests {
+    @Test func historyReceiptsRoundTripAndHaveDistinctContentDigests() throws {
+        let clear = CaptureClearReceipt(
+            operationID: UUID(),
+            controlRevision: 2,
+            deletionRevision: 1,
+            clearedThroughSequence: 3,
+            commandDigest: CaptureCommandDigest.clear(expectedControlRevision: 2)
+        )
+        let now = Date(timeIntervalSinceReferenceDate: 100)
+        let prune = CapturePruneReceipt(
+            operationID: UUID(),
+            commandDigest: CaptureCommandDigest.prune(now: now, limit: 2),
+            deletionRevision: 2,
+            deletedRows: 2,
+            deletedPayloadBytes: 200,
+            hasMore: true
+        )
+        for receipt in [CaptureReceipt.clear(clear), .prune(prune)] {
+            let encoded = try JSONEncoder().encode(receipt)
+            #expect(try JSONDecoder().decode(CaptureReceipt.self, from: encoded) == receipt)
+        }
+        #expect(clear.commandDigest != prune.commandDigest)
+        #expect(clear.commandDigest != CaptureCommandDigest.clear(expectedControlRevision: 3))
+        #expect(prune.commandDigest != CaptureCommandDigest.prune(now: now, limit: 3))
+        #expect(prune.commandDigest != CaptureCommandDigest.prune(now: now.addingTimeInterval(1), limit: 2))
+    }
+
+    @Test func historyMetadataDoesNotChangeRecordingIntentAndPreservesItsFence() throws {
+        let epoch = CaptureEpoch(recordingID: UUID(), revision: 1)
+        let stop = CaptureControlReceipt(
+            operationID: UUID(),
+            kind: .stop,
+            epoch: epoch,
+            controlRevision: 2,
+            commandDigest: CaptureCommandDigest.stop(epoch: epoch, expectedControlRevision: 1)
+        )
+        let stopped = CaptureControlSnapshot(revision: 2, activeEpoch: nil, lastControlReceipt: stop)
+        let clear = CaptureClearReceipt(
+            operationID: UUID(),
+            controlRevision: 2,
+            deletionRevision: 1,
+            clearedThroughSequence: 3,
+            commandDigest: CaptureCommandDigest.clear(expectedControlRevision: 2)
+        )
+        let cleared = CaptureControlSnapshot(
+            revision: 2,
+            activeEpoch: nil,
+            lastControlReceipt: stop,
+            deletionRevision: 1,
+            clearedThroughSequence: 3,
+            lastClearReceipt: clear
+        )
+        #expect(cleared.hasValidHistoryState)
+        #expect(cleared != stopped)
+        #expect(cleared.hasSameRecordingIntent(as: stopped))
+        let encoded = try JSONEncoder().encode(cleared)
+        #expect(try JSONDecoder().decode(CaptureControlSnapshot.self, from: encoded) == cleared)
+        let invalid = CaptureControlSnapshot(
+            revision: 2,
+            activeEpoch: nil,
+            lastControlReceipt: stop,
+            deletionRevision: 1,
+            clearedThroughSequence: 3
+        )
+        #expect(!invalid.hasValidHistoryState)
+    }
+
     @Test func controlAndBatchReceiptsRoundTripWithoutChangingDispositions() throws {
         let epoch = CaptureEpoch(recordingID: UUID(), revision: 1)
         let control = CaptureControlReceipt(

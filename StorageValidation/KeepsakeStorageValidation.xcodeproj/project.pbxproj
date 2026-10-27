@@ -12,6 +12,7 @@
 		E4000000000000000000000A /* LocalCapturePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000A /* LocalCapturePersistenceTests.swift */; };
 		E4000000000000000000000B /* CapturePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000B /* CapturePersistenceTests.swift */; };
 		E4000000000000000000000C /* LocalCaptureCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000C /* LocalCaptureCoordinatorTests.swift */; };
+		E4000000000000000000000D /* CaptureHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000D /* CaptureHistoryTests.swift */; };
 		E40000000000000000000001 /* RecordingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000001 /* RecordingState.swift */; };
 		E40000000000000000000002 /* RecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000002 /* RecorderModel.swift */; };
 		E40000000000000000000003 /* RecorderLifecycleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000003 /* RecorderLifecycleSupport.swift */; };
@@ -44,6 +45,7 @@
 		E3000000000000000000000A /* LocalCapturePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCapturePersistenceTests.swift; sourceTree = "<group>"; };
 		E3000000000000000000000B /* CapturePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePersistenceTests.swift; sourceTree = "<group>"; };
 		E3000000000000000000000C /* LocalCaptureCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureCoordinatorTests.swift; sourceTree = "<group>"; };
+		E3000000000000000000000D /* CaptureHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureHistoryTests.swift; sourceTree = "<group>"; };
 		E30000000000000000000001 /* RecordingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingState.swift; sourceTree = "<group>"; };
 		E30000000000000000000002 /* RecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModel.swift; sourceTree = "<group>"; };
 		E30000000000000000000003 /* RecorderLifecycleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderLifecycleSupport.swift; sourceTree = "<group>"; };
@@ -111,6 +113,7 @@
 				E3000000000000000000000A /* LocalCapturePersistenceTests.swift */,
 				E3000000000000000000000B /* CapturePersistenceTests.swift */,
 				E3000000000000000000000C /* LocalCaptureCoordinatorTests.swift */,
+				E3000000000000000000000D /* CaptureHistoryTests.swift */,
 				E30000000000000000000006 /* RecorderModelTests.swift */,
 				E30000000000000000000007 /* LocationAuthorizationObserverTests.swift */,
 				4D3AA1A9CA610A83139890A0 /* RouteStoreTests.swift */,
@@ -250,6 +253,7 @@
 				E4000000000000000000000A /* LocalCapturePersistenceTests.swift in Sources */,
 				E4000000000000000000000B /* CapturePersistenceTests.swift in Sources */,
 				E4000000000000000000000C /* LocalCaptureCoordinatorTests.swift in Sources */,
+				E4000000000000000000000D /* CaptureHistoryTests.swift in Sources */,
 				E40000000000000000000006 /* RecorderModelTests.swift in Sources */,
 				E40000000000000000000007 /* LocationAuthorizationObserverTests.swift in Sources */,
 				33BA459207557854C68E8471 /* RouteStoreTests.swift in Sources */,

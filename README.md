@@ -34,6 +34,8 @@ These changes do not make Stop durable or activate automatic recovery. The SQLit
 
 An explicitly created schema-v2 store now provides durable capture epochs, Begin/Stop fences, bounded ordered batches and retained operation receipts. A separate, unactivated coordinator serializes those commands, closes runtime admission immediately on Stop and keeps uncertainty vetoed until explicit reconciliation. Neither is selected by the app; its Stop remains runtime-only. See [the local capture foundation](docs/local-capture-foundation.md) for limits and validation boundaries.
 
+The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow and remain uncompiled and unrun.
+
 ## Validation status
 
 This is a curated source checkpoint, not a release. The portable isolated host at commit `49a6c1f` built unsigned with the iOS Simulator 27.1 SDK, and all nine `RouteRepositoryTests` passed on iOS 26.5, including the corrected post-rename regression. The test now checks exact prepared-to-published bytes and bit-exact decoded sample values without assuming a stable key order across independent JSON encodings.
@@ -42,4 +44,4 @@ The earlier original local staging result remains part of the provenance: 53 pas
 
 ## Scope boundary
 
-Default-store integration, bounded history queries and measured resource use remain planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.
+Default-store/UI integration and measured resource use remain planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.

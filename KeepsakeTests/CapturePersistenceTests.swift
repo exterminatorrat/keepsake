@@ -5,6 +5,53 @@ import Testing
 @testable import Keepsake
 
 struct CapturePersistenceTests {
+    @Test func latestClearReceiptSurvivesLedgerRetirementWithoutReplacingRecordingIntent() async throws {
+        let fixture = try makeCaptureFixture()
+        defer { removeCaptureFixture(fixture.container) }
+        let store = try RouteStore.createFoundation(at: fixture.store, seams: captureTestSeams())
+        let now = Date.now
+        let recordingID = UUID()
+        let begin = try await store.beginRecording(
+            recordingID: recordingID,
+            expectedControlRevision: 0,
+            operationID: UUID()
+        )
+        _ = try await store.appendBatch(
+            [makeCaptureSample(at: now.timeIntervalSinceReferenceDate - 1, recordingID: recordingID)],
+            epoch: begin.epoch,
+            operationID: UUID(),
+            now: now
+        )
+        let stop = try await store.stopRecording(
+            epoch: begin.epoch,
+            expectedControlRevision: begin.controlRevision,
+            operationID: UUID()
+        )
+        let clearID = UUID()
+        let clear = try await store.clearHistory(expectedControlRevision: stop.controlRevision, operationID: clearID)
+        let stoppedControl = try await store.readControl()
+        await store.close()
+        try executeCaptureSQL(at: fixture.store, sql: "DELETE FROM capture_receipts")
+
+        let reopened = try RouteStore.openFoundation(at: fixture.store, seams: captureTestSeams())
+        #expect(try await reopened.lookupReceipt(operationID: clearID) == .found(.clear(clear)))
+        #expect(try await reopened.lookupReceipt(operationID: stop.operationID) == .found(.control(stop)))
+        #expect(try await reopened.clearHistory(expectedControlRevision: stop.controlRevision, operationID: clearID) == clear)
+        #expect(try await reopened.readControl() == stoppedControl)
+        _ = try await reopened.beginRecording(
+            recordingID: UUID(),
+            expectedControlRevision: stop.controlRevision,
+            operationID: UUID()
+        )
+        let activeControl = try await reopened.readControl()
+        #expect(try await reopened.clearHistory(expectedControlRevision: stop.controlRevision, operationID: clearID) == clear)
+        await expectCaptureErrorAsync(.operationConflict) {
+            _ = try await reopened.clearHistory(expectedControlRevision: stop.controlRevision + 1, operationID: clearID)
+        }
+        #expect(try await reopened.readControl() == activeControl)
+        await reopened.close()
+    }
+
     @Test func foundationProfileStartsStoppedAndRejectsUnfencedLegacyEntryPoints() async throws {
         let fixture = try makeCaptureFixture()
         defer { removeCaptureFixture(fixture.container) }

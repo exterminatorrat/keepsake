@@ -47,6 +47,7 @@ targets:
       - path: ../KeepsakeTests/LocalCapturePersistenceTests.swift
       - path: ../KeepsakeTests/CapturePersistenceTests.swift
       - path: ../KeepsakeTests/LocalCaptureCoordinatorTests.swift
+      - path: ../KeepsakeTests/CaptureHistoryTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:
