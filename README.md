@@ -36,7 +36,7 @@ An explicitly created schema-v2 store now provides durable capture epochs, Begin
 
 The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow; the isolated host at `8e4c2eb` built and passed its selected synthetic suites, with two hardware-only skips.
 
-An opt-in [durable lifecycle adapter](docs/local-capture-lifecycle.md) prepares the real location/session seams for the existing coordinator, explicit persisted-intent resume and durable Stop. Two main-app build-for-testing attempts found test-only compilation errors: a parameterized test's access level, then a missing `try` on a throwing receipt lookup. Both are corrected in source; the latest correction is not yet recompiled and no tests ran. The adapter remains unwired and the running app/default storage behavior is unchanged.
+An opt-in [durable lifecycle adapter](docs/local-capture-lifecycle.md) prepares the real location/session seams for the existing coordinator, explicit persisted-intent resume and durable Stop. After two focused test-compile corrections, an unsigned arm64 main-app `build-for-testing` at `a20e515` succeeded with SDK 27.1, compiling the app and test target. No assertions, simulator boot, app launch or phone operation ran. The adapter remains unwired and the running app/default storage behavior is unchanged; compilation does not establish lifecycle, UI or field reliability.
 
 ## Validation status
 
