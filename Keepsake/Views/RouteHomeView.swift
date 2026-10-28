@@ -145,7 +145,7 @@ struct RouteHomeView: View {
 
             if let latest = recorder.samples.last {
                 LabeledContent("Latest observation", value: latest.observedAt.formatted(date: .omitted, time: .standard))
-                LabeledContent("Horizontal accuracy", value: "±\(Int(latest.horizontalAccuracy.rounded())) m")
+                LabeledContent("Horizontal accuracy", value: "±\(latest.horizontalAccuracy.formatted(.number.precision(.fractionLength(0)))) m")
             } else {
                 LabeledContent("Latest observation", value: "None yet")
             }
