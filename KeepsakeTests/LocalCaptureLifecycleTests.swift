@@ -104,7 +104,7 @@ struct LocalCaptureLifecycleTests {
             )
         ]
     )
-    func capabilityLossDuringBeginDefersInterruptionUntilOwnerInstallation(
+    fileprivate func capabilityLossDuringBeginDefersInterruptionUntilOwnerInstallation(
         _ capabilityCase: LocalCaptureLifecycleCapabilityRaceCase
     ) async throws {
         let store = CoordinatorPersistenceFake()
