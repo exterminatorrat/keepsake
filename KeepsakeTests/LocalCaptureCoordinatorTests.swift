@@ -402,6 +402,593 @@ struct LocalCaptureCoordinatorTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func clearPreservesStoppedControlRevisionAndLatestStopReceipt() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        let input = try makeInput(recordingID: epoch.recordingID, count: 1, startingAt: 1)
+        let batchReceipt = try await coordinator.append(
+            input,
+            now: Date(timeIntervalSinceReferenceDate: 100)
+        )
+        #expect(batchReceipt.items.first?.disposition == .stored)
+
+        let stopResult = try await coordinator.stopRecording()
+        guard case .stopped(let stopReceipt) = stopResult else {
+            Issue.record("Stop did not return its durable receipt")
+            return
+        }
+        let before = try #require(coordinator.controlSnapshot)
+        let clearReceipt = try await coordinator.clearHistory(
+            expectedControlRevision: stopReceipt.controlRevision,
+            operationID: UUID()
+        )
+        let after = try #require(coordinator.controlSnapshot)
+
+        #expect(clearReceipt.controlRevision == stopReceipt.controlRevision)
+        #expect(clearReceipt.deletionRevision == before.deletionRevision + 1)
+        #expect(clearReceipt.clearedThroughSequence > before.clearedThroughSequence)
+        #expect(clearReceipt.commandDigest == CaptureCommandDigest.clear(
+            expectedControlRevision: stopReceipt.controlRevision
+        ))
+        #expect(after.revision == stopReceipt.controlRevision)
+        #expect(after.activeEpoch == nil)
+        #expect(after.lastControlReceipt == stopReceipt)
+        #expect(after.lastClearReceipt == clearReceipt)
+        #expect(after.deletionRevision == clearReceipt.deletionRevision)
+        #expect(after.clearedThroughSequence == clearReceipt.clearedThroughSequence)
+        #expect(coordinator.state == .stopped(controlRevision: stopReceipt.controlRevision))
+        #expect(runtime.startedEpochs == [epoch])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pendingClearVetoesStartUntilClearCompletes() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        let operationID = UUID()
+        await store.gateNextClear()
+
+        let clear = Task {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+        await store.waitForClearCall()
+        await expectError(LocalCaptureCoordinatorError.historyClearPending) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+        #expect(runtime.startedEpochs.isEmpty)
+
+        await store.releaseClear()
+        let receipt = try await clear.value
+        let epoch = try await coordinator.startRecording(recordingID: UUID())
+
+        #expect(receipt.controlRevision == control.revision)
+        #expect(epoch.revision == control.revision + 1)
+        #expect(runtime.startedEpochs == [epoch])
+        let clearCalls = await store.clearCallCount()
+        #expect(clearCalls == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pendingBeginRejectsClearWithoutCallingPersistence() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        await store.gateNextBegin()
+
+        let begin = Task { try await coordinator.startRecording(recordingID: UUID()) }
+        await store.waitForBeginCall()
+        await expectError(CapturePersistenceError.recordingActive) {
+            try await coordinator.clearHistory(expectedControlRevision: control.revision)
+        }
+        let clearCalls = await store.clearCallCount()
+        #expect(clearCalls == 0)
+
+        await store.releaseBegin()
+        _ = try await begin.value
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func activeRecordingRejectsClearWithoutCallingPersistence() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let control = try #require(coordinator.controlSnapshot)
+
+        await expectError(CapturePersistenceError.recordingActive) {
+            try await coordinator.clearHistory(expectedControlRevision: control.revision)
+        }
+        let clearCalls = await store.clearCallCount()
+        #expect(clearCalls == 0)
+        #expect(runtime.startedEpochs.count == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func persistedActiveIntentRejectsClearWithoutStartingRuntime() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let activeReceipt = try await store.beginExternally(recordingID: UUID())
+        let control = try await coordinator.refreshControl()
+
+        await expectError(CapturePersistenceError.recordingActive) {
+            try await coordinator.clearHistory(expectedControlRevision: control.revision)
+        }
+        let clearCalls = await store.clearCallCount()
+
+        #expect(control.activeEpoch == activeReceipt.epoch)
+        #expect(coordinator.state == .resumeRequired(
+            epoch: activeReceipt.epoch,
+            controlRevision: activeReceipt.controlRevision
+        ))
+        #expect(clearCalls == 0)
+        #expect(runtime.startedEpochs.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func admittedAppendStopAndClearCommitInOrder() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        let input = try makeInput(recordingID: epoch.recordingID, count: 2, startingAt: 1)
+        await store.clearEventLog()
+        await store.gateNextAppend()
+        await store.gateNextStop()
+
+        let append = Task {
+            try await coordinator.append(
+                input,
+                now: Date(timeIntervalSinceReferenceDate: 100)
+            )
+        }
+        await store.waitForAppendCall()
+
+        let (stopStarted, stopStartSignal) = AsyncStream<Void>.makeStream()
+        let stop = Task {
+            stopStartSignal.yield(())
+            return try await coordinator.stopRecording()
+        }
+        var stopStartedIterator = stopStarted.makeAsyncIterator()
+        _ = await stopStartedIterator.next()
+
+        let (clearStarted, clearStartSignal) = AsyncStream<Void>.makeStream()
+        let clear = Task {
+            clearStartSignal.yield(())
+            return try await coordinator.clearHistory(
+                expectedControlRevision: epoch.revision + 1,
+                operationID: UUID()
+            )
+        }
+        var clearStartedIterator = clearStarted.makeAsyncIterator()
+        _ = await clearStartedIterator.next()
+        await expectError(LocalCaptureCoordinatorError.historyClearPending) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+
+        await store.releaseAppend()
+        await store.waitForStopCall()
+        let eventsBeforeStopCommit = await store.eventLog()
+        let clearCallsBeforeStopCommit = await store.clearCallCount()
+        #expect(eventsBeforeStopCommit == ["append.started", "append.committed", "stop.started"])
+        #expect(clearCallsBeforeStopCommit == 0)
+
+        await store.releaseStop()
+        let batchReceipt = try await append.value
+        let stopResult = try await stop.value
+        guard case .stopped(let stopReceipt) = stopResult else {
+            Issue.record("Stop did not return its durable receipt")
+            return
+        }
+        let clearReceipt = try await clear.value
+        let events = await store.eventLog()
+
+        #expect(batchReceipt.items.map(\.sampleID) == input.samples.map(\.id))
+        #expect(clearReceipt.controlRevision == stopReceipt.controlRevision)
+        #expect(clearReceipt.clearedThroughSequence > 0)
+        #expect(events == [
+            "append.started",
+            "append.committed",
+            "stop.started",
+            "stop.committed",
+            "clear.started",
+            "clear.committed"
+        ])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unconfirmedStopCannotBeBypassedByQueuedClear() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        await store.setNextStopBehavior(.notCommitted)
+        await store.gateNextStop()
+
+        let (stopStarted, stopStartSignal) = AsyncStream<Void>.makeStream()
+        let stop = Task {
+            stopStartSignal.yield(())
+            return try await coordinator.stopRecording()
+        }
+        var stopStartedIterator = stopStarted.makeAsyncIterator()
+        _ = await stopStartedIterator.next()
+
+        let (clearStarted, clearStartSignal) = AsyncStream<Void>.makeStream()
+        let clear = Task {
+            clearStartSignal.yield(())
+            return try await coordinator.clearHistory(
+                expectedControlRevision: epoch.revision + 1,
+                operationID: UUID()
+            )
+        }
+        var clearStartedIterator = clearStarted.makeAsyncIterator()
+        _ = await clearStartedIterator.next()
+        await expectError(LocalCaptureCoordinatorError.historyClearPending) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+
+        await store.releaseStop()
+        let stopError = await capturedError { try await stop.value }
+        let clearError = await capturedError { try await clear.value }
+        guard let stopOperationID = coordinatorStopOperationID(from: stopError) else {
+            Issue.record("Unconfirmed Stop did not retain its operation identity")
+            return
+        }
+        let clearCalls = await store.clearCallCount()
+
+        #expect(stopError as? LocalCaptureCoordinatorError == .stopUnconfirmed(stopOperationID))
+        #expect(clearError as? LocalCaptureCoordinatorError == .stopUnconfirmed(stopOperationID))
+        #expect(coordinator.state == .stopUnconfirmed(operationID: stopOperationID, epoch: epoch))
+        #expect(clearCalls == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func staleClearRevisionRefreshesControlWithoutCallingClearPersistence() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let staleControl = try await coordinator.refreshControl()
+        _ = try await store.beginExternally(recordingID: UUID())
+        _ = try await store.stopExternally()
+        let durableControl = try await store.readControl()
+
+        await expectError(CapturePersistenceError.staleControlRevision) {
+            try await coordinator.clearHistory(expectedControlRevision: staleControl.revision)
+        }
+        let clearCalls = await store.clearCallCount()
+
+        #expect(coordinator.controlSnapshot == durableControl)
+        #expect(coordinator.state == .stopped(controlRevision: durableControl.revision))
+        #expect(clearCalls == 0)
+        #expect(runtime.startedEpochs.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func definiteClearNoncommitLeavesStartAvailable() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        await store.setNextClearBehavior(.notCommitted)
+
+        let error = await capturedError {
+            try await coordinator.clearHistory(expectedControlRevision: control.revision)
+        }
+        let clearCalls = await store.clearCallCount()
+        #expect(error as? CapturePersistenceError == .notCommitted(.writeFailed))
+        #expect(coordinator.state == .stopped(controlRevision: control.revision))
+        #expect(coordinator.isStorageReady)
+        #expect(clearCalls == 1)
+
+        let epoch = try await coordinator.startRecording(recordingID: UUID())
+        #expect(epoch.revision == control.revision + 1)
+        #expect(runtime.startedEpochs == [epoch])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func uncertainCommittedClearReconcilesWithoutStartingRuntime() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        let operationID = UUID()
+        await store.setNextClearBehavior(.uncertainAfterCommit)
+        await store.setReceiptLookupUnavailable(true)
+
+        let error = await capturedError {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .clear,
+            reason: .persistenceOutcome
+        ))
+        await expectError(LocalCaptureCoordinatorError.unresolvedOperation(operationID)) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+
+        let result = try await coordinator.reconcileUncertain()
+        guard case .clearCommitted(let receipt) = result else {
+            Issue.record("Reconciliation did not confirm the committed Clear")
+            return
+        }
+        let durableControl = try await store.readControl()
+        let clearCalls = await store.clearCallCount()
+        let reopenCount = await store.reopenCount()
+
+        #expect(receipt.operationID == operationID)
+        #expect(receipt.controlRevision == control.revision)
+        #expect(durableControl.revision == control.revision)
+        #expect(durableControl.lastControlReceipt == control.lastControlReceipt)
+        #expect(durableControl.lastClearReceipt == receipt)
+        #expect(coordinator.controlSnapshot == durableControl)
+        #expect(coordinator.state == .stopped(controlRevision: control.revision))
+        #expect(clearCalls == 1)
+        #expect(reopenCount == 1)
+        #expect(runtime.startedEpochs.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func clearReconciliationRejectsReceiptsWithStaleHistoryBounds() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        let input = try makeInput(recordingID: epoch.recordingID, count: 2, startingAt: 1)
+        let batchReceipt = try await coordinator.append(
+            input,
+            now: Date(timeIntervalSinceReferenceDate: 100)
+        )
+        #expect(batchReceipt.items.allSatisfy { $0.disposition == .stored })
+
+        let stopResult = try await coordinator.stopRecording()
+        guard case .stopped(let stopReceipt) = stopResult else {
+            Issue.record("Stop did not return its durable receipt")
+            return
+        }
+        let operationID = UUID()
+        await store.setNextClearBehavior(.uncertainAfterCommit)
+        let error = await capturedError {
+            try await coordinator.clearHistory(
+                expectedControlRevision: stopReceipt.controlRevision,
+                operationID: operationID
+            )
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+
+        let durableControl = try await store.readControl()
+        let durableReceipt = try #require(durableControl.lastClearReceipt)
+        #expect(durableReceipt.operationID == operationID)
+        #expect(durableReceipt.controlRevision == stopReceipt.controlRevision)
+        #expect(durableReceipt.clearedThroughSequence == 2)
+        #expect(durableReceipt.deletionRevision == 1)
+
+        await store.overrideReceiptLookup(
+            operationID: operationID,
+            with: .clear(CaptureClearReceipt(
+                operationID: durableReceipt.operationID,
+                controlRevision: durableReceipt.controlRevision,
+                deletionRevision: 0,
+                clearedThroughSequence: 1,
+                commandDigest: durableReceipt.commandDigest
+            ))
+        )
+        let invalidBoundsResult = try await coordinator.reconcileUncertain()
+        #expect(invalidBoundsResult == .unresolved(operationID, .receiptMismatch))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .clear,
+            reason: .receiptMismatch
+        ))
+
+        await store.overrideReceiptLookup(
+            operationID: operationID,
+            with: .clear(CaptureClearReceipt(
+                operationID: durableReceipt.operationID,
+                controlRevision: durableReceipt.controlRevision,
+                deletionRevision: durableReceipt.deletionRevision,
+                clearedThroughSequence: 1,
+                commandDigest: durableReceipt.commandDigest
+            ))
+        )
+        let conflictingReceiptResult = try await coordinator.reconcileUncertain()
+        #expect(conflictingReceiptResult == .unresolved(operationID, .controlChanged))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .clear,
+            reason: .controlChanged
+        ))
+        await expectError(LocalCaptureCoordinatorError.unresolvedOperation(operationID)) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+        await expectError(LocalCaptureCoordinatorError.unresolvedOperation(operationID)) {
+            try await coordinator.clearHistory(
+                expectedControlRevision: stopReceipt.controlRevision,
+                operationID: operationID
+            )
+        }
+
+        let clearCalls = await store.clearCallCount()
+        #expect(clearCalls == 1)
+        #expect(runtime.startedEpochs == [epoch])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unavailableClearReceiptRemainsUnresolvedAndDoesNotRetry() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        let operationID = UUID()
+        await store.setNextClearBehavior(.uncertainBeforeCommit)
+        await store.setReceiptLookupUnavailable(true)
+
+        let error = await capturedError {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        let result = try await coordinator.reconcileUncertain()
+        let clearCalls = await store.clearCallCount()
+
+        #expect(result == .unresolved(operationID, .receiptUnavailable))
+        #expect(coordinator.controlSnapshot?.revision == control.revision)
+        #expect(coordinator.controlSnapshot?.lastControlReceipt == control.lastControlReceipt)
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .clear,
+            reason: .receiptUnavailable
+        ))
+        #expect(clearCalls == 1)
+        await expectError(LocalCaptureCoordinatorError.unresolvedOperation(operationID)) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+        await expectError(LocalCaptureCoordinatorError.unresolvedOperation(operationID)) {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func mismatchedClearReceiptRemainsUnresolved() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        let operationID = UUID()
+        await store.setNextClearBehavior(.mismatchedReceipt)
+
+        let error = await capturedError {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        let result = try await coordinator.reconcileUncertain()
+        let clearCalls = await store.clearCallCount()
+
+        #expect(result == .unresolved(operationID, .receiptMismatch))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .clear,
+            reason: .receiptMismatch
+        ))
+        #expect(coordinator.controlSnapshot?.lastClearReceipt == nil)
+        #expect(clearCalls == 1)
+        #expect(runtime.startedEpochs.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func clearReconciliationPreservesNewerControlIntentAndReceipt() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        let clearOperationID = UUID()
+        await store.setNextClearBehavior(.uncertainAfterCommit)
+
+        let error = await capturedError {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: clearOperationID
+            )
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(clearOperationID))
+        let newerBegin = try await store.beginExternally(recordingID: UUID())
+
+        let result = try await coordinator.reconcileUncertain()
+        guard case .clearCommitted(let clearReceipt) = result else {
+            Issue.record("Reconciliation did not confirm the committed Clear")
+            return
+        }
+        let durableControl = try await store.readControl()
+
+        #expect(durableControl.activeEpoch == newerBegin.epoch)
+        #expect(durableControl.lastControlReceipt == newerBegin)
+        #expect(durableControl.lastClearReceipt == clearReceipt)
+        #expect(coordinator.controlSnapshot == durableControl)
+        #expect(coordinator.state == .resumeRequired(
+            epoch: newerBegin.epoch,
+            controlRevision: newerBegin.controlRevision
+        ))
+        #expect(runtime.startedEpochs.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func samePendingClearCoalescesAndConflictingRequestsFail() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        let control = try await coordinator.refreshControl()
+        let operationID = UUID()
+        await store.gateNextClear()
+
+        let (firstStarted, firstStartSignal) = AsyncStream<Void>.makeStream()
+        let first = Task {
+            firstStartSignal.yield(())
+            return try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+        var firstStartedIterator = firstStarted.makeAsyncIterator()
+        _ = await firstStartedIterator.next()
+        await store.waitForClearCall()
+
+        let (secondStarted, secondStartSignal) = AsyncStream<Void>.makeStream()
+        let second = Task {
+            secondStartSignal.yield(())
+            return try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: operationID
+            )
+        }
+        var secondStartedIterator = secondStarted.makeAsyncIterator()
+        _ = await secondStartedIterator.next()
+
+        await expectError(LocalCaptureCoordinatorError.operationConflict(operationID)) {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision + 1,
+                operationID: operationID
+            )
+        }
+        await expectError(LocalCaptureCoordinatorError.historyClearPending) {
+            try await coordinator.clearHistory(
+                expectedControlRevision: control.revision,
+                operationID: UUID()
+            )
+        }
+        let callsBeforeRelease = await store.clearCallCount()
+        #expect(callsBeforeRelease == 1)
+
+        await store.releaseClear()
+        let firstReceipt = try await first.value
+        let secondReceipt = try await second.value
+        let clearCalls = await store.clearCallCount()
+        let clearIDs = await store.clearIDs()
+
+        #expect(firstReceipt == secondReceipt)
+        #expect(clearCalls == 1)
+        #expect(clearIDs == [operationID])
+        #expect(runtime.startedEpochs.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func pendingLaneBoundsSamplesAndPreservesBatchOrder() async throws {
         let store = CoordinatorPersistenceFake()
         let runtime = CoordinatorRuntimeFake()
@@ -606,26 +1193,42 @@ private enum FakeStopBehavior: Equatable {
     case uncertainAfterCommit
 }
 
+private enum FakeClearBehavior: Equatable, Sendable {
+    case success
+    case notCommitted
+    case uncertainBeforeCommit
+    case uncertainAfterCommit
+    case mismatchedReceipt
+}
+
 actor CoordinatorPersistenceFake: LocalCapturePersistence {
     private var control = CaptureControlSnapshot(revision: 0, activeEpoch: nil, lastControlReceipt: nil)
     private var receipts: [UUID: CaptureReceipt] = [:]
     private var samples: [UUID: RouteSample] = [:]
     private var sampleEpochs: [UUID: Int64] = [:]
+    private var insertionHighWaterSequence: Int64 = 0
     private var beginCalls = 0
     private var appendCalls = 0
     private var stopCalls = 0
+    private var clearCalls = 0
     private var reopens = 0
     private var stopOperationIDs: [UUID] = []
+    private var clearOperationIDs: [UUID] = []
     private var stopGated = false
+    private var clearGated = false
     private var stopBarrier: CheckedContinuation<Void, Never>?
+    private var clearBarrier: CheckedContinuation<Void, Never>?
     private var stopCallWaiters: [CheckedContinuation<Void, Never>] = []
+    private var clearCallWaiters: [CheckedContinuation<Void, Never>] = []
     private var events: [String] = []
     private var lookupUnavailable = false
+    private var receiptLookupReplacements: [UUID: CaptureReceipt] = [:]
     private var beginGated = false
     private var appendGated = false
     private var beginUncertainAfterCommit = false
     private var appendUncertainAfterCommit = false
     private var nextStopBehavior = FakeStopBehavior.success
+    private var nextClearBehavior = FakeClearBehavior.success
     private var beginBarrier: CheckedContinuation<Void, Never>?
     private var appendBarrier: CheckedContinuation<Void, Never>?
     private var beginCallWaiters: [CheckedContinuation<Void, Never>] = []
@@ -724,6 +1327,7 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
             } else if samples[sample.id] != nil {
                 disposition = .duplicate
             } else {
+                insertionHighWaterSequence += 1
                 samples[sample.id] = sample
                 sampleEpochs[sample.id] = epoch.revision
                 disposition = .stored
@@ -807,9 +1411,100 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
         return receipt
     }
 
+    func clearHistory(
+        expectedControlRevision: Int64,
+        operationID: UUID
+    ) async throws -> CaptureClearReceipt {
+        clearCalls += 1
+        clearOperationIDs.append(operationID)
+        events.append("clear.started")
+        resume(&clearCallWaiters)
+        if clearGated {
+            await withCheckedContinuation { clearBarrier = $0 }
+            clearGated = false
+        }
+
+        let digest = CaptureCommandDigest.clear(expectedControlRevision: expectedControlRevision)
+        if let known = receipts[operationID] {
+            guard case .clear(let receipt) = known, receipt.commandDigest == digest else {
+                throw CapturePersistenceError.operationConflict
+            }
+            return receipt
+        }
+        guard control.revision == expectedControlRevision else {
+            throw CapturePersistenceError.staleControlRevision
+        }
+        guard control.activeEpoch == nil else {
+            throw CapturePersistenceError.recordingActive
+        }
+
+        let behavior = nextClearBehavior
+        nextClearBehavior = .success
+        if behavior == .notCommitted {
+            throw CapturePersistenceError.notCommitted(.writeFailed)
+        }
+        if behavior == .uncertainBeforeCommit {
+            throw CapturePersistenceError.outcomeUncertain(operationID)
+        }
+
+        guard control.clearedThroughSequence <= insertionHighWaterSequence else {
+            throw CapturePersistenceError.invalidControlState
+        }
+        let advancesFloor = insertionHighWaterSequence > control.clearedThroughSequence
+        let deletionRevision: Int64
+        if advancesFloor {
+            guard control.deletionRevision < Int64.max else {
+                throw CapturePersistenceError.revisionExhausted
+            }
+            deletionRevision = control.deletionRevision + 1
+        } else {
+            deletionRevision = control.deletionRevision
+        }
+        let clearedThroughSequence = max(control.clearedThroughSequence, insertionHighWaterSequence)
+        let receipt = CaptureClearReceipt(
+            operationID: operationID,
+            controlRevision: control.revision,
+            deletionRevision: deletionRevision,
+            clearedThroughSequence: clearedThroughSequence,
+            commandDigest: digest
+        )
+        if behavior == .mismatchedReceipt {
+            let mismatchedReceipt = CaptureClearReceipt(
+                operationID: UUID(),
+                controlRevision: receipt.controlRevision,
+                deletionRevision: receipt.deletionRevision,
+                clearedThroughSequence: receipt.clearedThroughSequence,
+                commandDigest: receipt.commandDigest
+            )
+            receipts[operationID] = .clear(mismatchedReceipt)
+            events.append("clear.receiptMismatch")
+            return mismatchedReceipt
+        }
+
+        control = CaptureControlSnapshot(
+            revision: control.revision,
+            activeEpoch: nil,
+            lastControlReceipt: control.lastControlReceipt,
+            deletionRevision: deletionRevision,
+            clearedThroughSequence: clearedThroughSequence,
+            lastClearReceipt: receipt
+        )
+        receipts[operationID] = .clear(receipt)
+        samples.removeAll()
+        sampleEpochs.removeAll()
+        events.append("clear.committed")
+        if behavior == .uncertainAfterCommit {
+            throw CapturePersistenceError.outcomeUncertain(operationID)
+        }
+        return receipt
+    }
+
     func lookupReceipt(operationID: UUID) async throws -> CaptureReceiptLookup {
         guard !lookupUnavailable else {
             return .unavailable
+        }
+        if let replacement = receiptLookupReplacements[operationID] {
+            return .found(replacement)
         }
         return receipts[operationID].map(CaptureReceiptLookup.found) ?? .unavailable
     }
@@ -843,6 +1538,10 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
     func gateNextBegin() { beginGated = true }
     func gateNextAppend() { appendGated = true }
     func gateNextStop() { stopGated = true }
+    func gateNextClear() { clearGated = true }
+    func overrideReceiptLookup(operationID: UUID, with receipt: CaptureReceipt) {
+        receiptLookupReplacements[operationID] = receipt
+    }
     func advanceHistoryDeletionRevision() {
         control = CaptureControlSnapshot(
             revision: control.revision, activeEpoch: control.activeEpoch, lastControlReceipt: control.lastControlReceipt,
@@ -854,6 +1553,7 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
     func setNextBeginUncertainAfterCommit() { beginUncertainAfterCommit = true }
     func setReceiptLookupUnavailable(_ unavailable: Bool) { lookupUnavailable = unavailable }
     fileprivate func setNextStopBehavior(_ behavior: FakeStopBehavior) { nextStopBehavior = behavior }
+    fileprivate func setNextClearBehavior(_ behavior: FakeClearBehavior) { nextClearBehavior = behavior }
     func setNextAppendUncertainAfterCommit() { appendUncertainAfterCommit = true }
     func recordReopen() { reopens += 1 }
     func clearEventLog() { events = [] }
@@ -873,16 +1573,24 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
         await withCheckedContinuation { stopCallWaiters.append($0) }
     }
 
+    func waitForClearCall() async {
+        guard clearCalls == 0 else { return }
+        await withCheckedContinuation { clearCallWaiters.append($0) }
+    }
+
     func releaseBegin() { beginBarrier?.resume(); beginBarrier = nil }
     func releaseAppend() { appendBarrier?.resume(); appendBarrier = nil }
     func releaseStop() { stopBarrier?.resume(); stopBarrier = nil }
+    func releaseClear() { clearBarrier?.resume(); clearBarrier = nil }
 
     func beginCallCount() -> Int { beginCalls }
     func appendCallCount() -> Int { appendCalls }
     func stopCallCount() -> Int { stopCalls }
+    func clearCallCount() -> Int { clearCalls }
     func reopenCount() -> Int { reopens }
     func eventLog() -> [String] { events }
     func stopIDs() -> [UUID] { stopOperationIDs }
+    func clearIDs() -> [UUID] { clearOperationIDs }
 
     func stopExternally() throws -> CaptureControlReceipt {
         guard let epoch = control.activeEpoch, control.revision < Int64.max else {
