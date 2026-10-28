@@ -57,6 +57,131 @@ struct LocalCaptureCoordinatorTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func runtimeInterruptionPreservesVerifiedIntentWithoutPersistence() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        guard case .active(_, let generation, _) = coordinator.state else {
+            Issue.record("Expected an active runtime owner")
+            return
+        }
+        let controlBefore = try await store.readControl()
+
+        #expect(coordinator.runtimeInterrupted(epoch: epoch, generation: generation))
+
+        #expect(coordinator.state == .resumeRequired(epoch: epoch, controlRevision: controlBefore.revision))
+        #expect(!coordinator.isAcceptingSamples)
+        #expect(runtime.stopCallCount == 1)
+        let controlAfter = try await store.readControl()
+        let persistedStopCalls = await store.stopCallCount()
+        #expect(controlAfter == controlBefore)
+        #expect(persistedStopCalls == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func runtimeInterruptionPreservesAdmittedAppendAndItsReceipt() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        guard case .active(_, let generation, _) = coordinator.state else {
+            Issue.record("Expected an active runtime owner")
+            return
+        }
+        let input = try makeInput(recordingID: epoch.recordingID, count: 1, startingAt: 1)
+        let operationID = UUID()
+        await store.gateNextAppend()
+
+        let append = Task {
+            try await coordinator.append(
+                input,
+                now: Date(timeIntervalSinceReferenceDate: 100),
+                operationID: operationID
+            )
+        }
+        await store.waitForAppendCall()
+        #expect(coordinator.pendingSampleCount == 1)
+        #expect(coordinator.runtimeInterrupted(epoch: epoch, generation: generation))
+        #expect(coordinator.pendingSampleCount == 1)
+        #expect(coordinator.state == .resumeRequired(epoch: epoch, controlRevision: epoch.revision))
+
+        await store.releaseAppend()
+        let receipt = try await append.value
+        let lookup = await store.lookupReceipt(operationID: operationID)
+        guard case .found(.batch(let storedReceipt)) = lookup else {
+            Issue.record("Runtime interruption discarded the admitted append receipt")
+            return
+        }
+
+        #expect(receipt == storedReceipt)
+        #expect(receipt.items.allSatisfy { $0.disposition == .stored })
+        #expect(coordinator.pendingSampleCount == 0)
+        #expect(coordinator.state == .resumeRequired(epoch: epoch, controlRevision: epoch.revision))
+        #expect(runtime.stopCallCount == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func staleRuntimeInterruptionCannotCloseExplicitlyResumedGeneration() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let oldEpoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        guard case .active(_, let oldGeneration, _) = coordinator.state else {
+            Issue.record("Expected an active runtime owner")
+            return
+        }
+        #expect(coordinator.runtimeInterrupted(epoch: oldEpoch, generation: oldGeneration))
+
+        let resumedEpoch = try await coordinator.startRecording(recordingID: oldEpoch.recordingID)
+        guard case .active(_, let resumedGeneration, _) = coordinator.state else {
+            Issue.record("Explicit resume did not install a runtime owner")
+            return
+        }
+
+        #expect(resumedEpoch.revision > oldEpoch.revision)
+        #expect(!coordinator.runtimeInterrupted(epoch: oldEpoch, generation: oldGeneration))
+        #expect(coordinator.state == .active(
+            epoch: resumedEpoch,
+            generation: resumedGeneration,
+            controlRevision: resumedEpoch.revision
+        ))
+        #expect(coordinator.isAcceptingSamples)
+        #expect(runtime.startedEpochs == [oldEpoch, resumedEpoch])
+        #expect(runtime.stopCallCount == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func runtimeInterruptionCannotOverridePendingStop() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        guard case .active(_, let generation, _) = coordinator.state else {
+            Issue.record("Expected an active runtime owner")
+            return
+        }
+        await store.gateNextStop()
+
+        let stop = Task { try await coordinator.stopRecording() }
+        await store.waitForStopCall()
+
+        let stopIDs = await store.stopIDs()
+        let operationID = try #require(stopIDs.last)
+        #expect(coordinator.state == .stopping(operationID: operationID, epoch: epoch))
+        #expect(!coordinator.runtimeInterrupted(epoch: epoch, generation: generation))
+        #expect(runtime.stopCallCount == 1)
+
+        await store.releaseStop()
+        guard case .stopped(let receipt) = try await stop.value else {
+            Issue.record("Pending Stop did not complete")
+            return
+        }
+        #expect(receipt.epoch == epoch)
+        #expect(coordinator.state == .stopped(controlRevision: receipt.controlRevision))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func stopDuringPendingBeginFencesTheEpochThatCommits() async throws {
         let store = CoordinatorPersistenceFake()
         let runtime = CoordinatorRuntimeFake()
@@ -185,6 +310,11 @@ struct LocalCaptureCoordinatorTests {
         let store = CoordinatorPersistenceFake()
         let runtime = CoordinatorRuntimeFake()
         let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let epoch = try #require(coordinator.controlSnapshot?.activeEpoch)
+        guard case .active(_, let generation, _) = coordinator.state else {
+            Issue.record("Expected an active runtime owner")
+            return
+        }
         await store.setNextStopBehavior(.uncertainAfterCommit)
 
         let error = await capturedError { try await coordinator.stopRecording() }
@@ -193,6 +323,7 @@ struct LocalCaptureCoordinatorTests {
             return
         }
         #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        #expect(!coordinator.runtimeInterrupted(epoch: epoch, generation: generation))
 
         let result = try await coordinator.reconcileUncertain()
         guard case .stopCommitted(let receipt) = result else {
@@ -475,7 +606,7 @@ private enum FakeStopBehavior: Equatable {
     case uncertainAfterCommit
 }
 
-private actor CoordinatorPersistenceFake: LocalCapturePersistence {
+actor CoordinatorPersistenceFake: LocalCapturePersistence {
     private var control = CaptureControlSnapshot(revision: 0, activeEpoch: nil, lastControlReceipt: nil)
     private var receipts: [UUID: CaptureReceipt] = [:]
     private var samples: [UUID: RouteSample] = [:]
@@ -485,6 +616,9 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
     private var stopCalls = 0
     private var reopens = 0
     private var stopOperationIDs: [UUID] = []
+    private var stopGated = false
+    private var stopBarrier: CheckedContinuation<Void, Never>?
+    private var stopCallWaiters: [CheckedContinuation<Void, Never>] = []
     private var events: [String] = []
     private var lookupUnavailable = false
     private var beginGated = false
@@ -619,6 +753,11 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
         stopCalls += 1
         stopOperationIDs.append(operationID)
         events.append("stop.started")
+        resume(&stopCallWaiters)
+        if stopGated {
+            await withCheckedContinuation { stopBarrier = $0 }
+            stopGated = false
+        }
 
         let behavior = nextStopBehavior
         nextStopBehavior = .success
@@ -675,6 +814,15 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
         return receipts[operationID].map(CaptureReceiptLookup.found) ?? .unavailable
     }
 
+    func batchReceipts() -> [CaptureBatchReceipt] {
+        receipts.values.compactMap { receipt in
+            guard case .batch(let batchReceipt) = receipt else {
+                return nil
+            }
+            return batchReceipt
+        }
+    }
+
     func reconcileSamples(
         _ samplesToReconcile: [RouteSample],
         epoch: CaptureEpoch
@@ -694,6 +842,7 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
 
     func gateNextBegin() { beginGated = true }
     func gateNextAppend() { appendGated = true }
+    func gateNextStop() { stopGated = true }
     func advanceHistoryDeletionRevision() {
         control = CaptureControlSnapshot(
             revision: control.revision, activeEpoch: control.activeEpoch, lastControlReceipt: control.lastControlReceipt,
@@ -704,7 +853,7 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
     }
     func setNextBeginUncertainAfterCommit() { beginUncertainAfterCommit = true }
     func setReceiptLookupUnavailable(_ unavailable: Bool) { lookupUnavailable = unavailable }
-    func setNextStopBehavior(_ behavior: FakeStopBehavior) { nextStopBehavior = behavior }
+    fileprivate func setNextStopBehavior(_ behavior: FakeStopBehavior) { nextStopBehavior = behavior }
     func setNextAppendUncertainAfterCommit() { appendUncertainAfterCommit = true }
     func recordReopen() { reopens += 1 }
     func clearEventLog() { events = [] }
@@ -719,8 +868,14 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
         await withCheckedContinuation { appendCallWaiters.append($0) }
     }
 
+    func waitForStopCall() async {
+        guard stopCalls == 0 else { return }
+        await withCheckedContinuation { stopCallWaiters.append($0) }
+    }
+
     func releaseBegin() { beginBarrier?.resume(); beginBarrier = nil }
     func releaseAppend() { appendBarrier?.resume(); appendBarrier = nil }
+    func releaseStop() { stopBarrier?.resume(); stopBarrier = nil }
 
     func beginCallCount() -> Int { beginCalls }
     func appendCallCount() -> Int { appendCalls }

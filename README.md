@@ -36,6 +36,8 @@ An explicitly created schema-v2 store now provides durable capture epochs, Begin
 
 The synthetic store also has bounded history pages, deletion-aware cursors, stopped-only logical clear receipts and chunked physical pruning. These source APIs are not connected to the app's history UI or coordinator clear flow; the isolated host at `8e4c2eb` built and passed its selected synthetic suites, with two hardware-only skips.
 
+An opt-in [durable lifecycle adapter](docs/local-capture-lifecycle.md) prepares the real location/session seams for the existing coordinator, explicit persisted-intent resume and durable Stop. It is unwired and its new deterministic tests remain uncompiled/unrun; the running app and its default storage behavior are unchanged.
+
 ## Validation status
 
 This is a curated source checkpoint, not a release. The portable isolated host at commit `49a6c1f` built unsigned with the iOS Simulator 27.1 SDK, and all nine `RouteRepositoryTests` passed on iOS 26.5, including the corrected post-rename regression. The test now checks exact prepared-to-published bytes and bit-exact decoded sample values without assuming a stable key order across independent JSON encodings.

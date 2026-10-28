@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E2000000000000000000000E /* LocalCaptureLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000E /* LocalCaptureLifecycle.swift */; };
+		E2000000000000000000000F /* LocalCaptureLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000F /* LocalCaptureLifecycleTests.swift */; };
 		E20000000000000000000008 /* LocalCapturePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000008 /* LocalCapturePersistence.swift */; };
 		E20000000000000000000009 /* LocalCaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000009 /* LocalCaptureCoordinator.swift */; };
 		E2000000000000000000000A /* LocalCapturePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000000000000000000000A /* LocalCapturePersistenceTests.swift */; };
@@ -43,6 +45,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E1000000000000000000000E /* LocalCaptureLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycle.swift; sourceTree = "<group>"; };
+		E1000000000000000000000F /* LocalCaptureLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycleTests.swift; sourceTree = "<group>"; };
 		E10000000000000000000008 /* LocalCapturePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCapturePersistence.swift; sourceTree = "<group>"; };
 		E10000000000000000000009 /* LocalCaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureCoordinator.swift; sourceTree = "<group>"; };
 		E1000000000000000000000A /* LocalCapturePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCapturePersistenceTests.swift; sourceTree = "<group>"; };
@@ -135,6 +139,7 @@
 				E1000000000000000000000A /* LocalCapturePersistenceTests.swift */,
 				E1000000000000000000000B /* CapturePersistenceTests.swift */,
 				E1000000000000000000000C /* LocalCaptureCoordinatorTests.swift */,
+				E1000000000000000000000F /* LocalCaptureLifecycleTests.swift */,
 				E1000000000000000000000D /* CaptureHistoryTests.swift */,
 				E10000000000000000000005 /* RecorderModelTests.swift */,
 				E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */,
@@ -159,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				E10000000000000000000009 /* LocalCaptureCoordinator.swift */,
+				E1000000000000000000000E /* LocalCaptureLifecycle.swift */,
 				E10000000000000000000004 /* RecorderLifecycleSupport.swift */,
 				0A839C69BBA3597989E73AF1 /* LocationAuthorizationObserver.swift */,
 				D5924C921F03E004AC98F4A2 /* RecorderModel.swift */,
@@ -241,6 +247,7 @@
 				E2000000000000000000000A /* LocalCapturePersistenceTests.swift in Sources */,
 				E2000000000000000000000B /* CapturePersistenceTests.swift in Sources */,
 				E2000000000000000000000C /* LocalCaptureCoordinatorTests.swift in Sources */,
+				E2000000000000000000000F /* LocalCaptureLifecycleTests.swift in Sources */,
 				E2000000000000000000000D /* CaptureHistoryTests.swift in Sources */,
 				E20000000000000000000005 /* RecorderModelTests.swift in Sources */,
 				E20000000000000000000006 /* LocationAuthorizationObserverTests.swift in Sources */,
@@ -257,6 +264,7 @@
 			files = (
 				E20000000000000000000008 /* LocalCapturePersistence.swift in Sources */,
 				E20000000000000000000009 /* LocalCaptureCoordinator.swift in Sources */,
+				E2000000000000000000000E /* LocalCaptureLifecycle.swift in Sources */,
 				E20000000000000000000004 /* RecorderLifecycleSupport.swift in Sources */,
 				BC704A185B12183F2A9B7FF0 /* KeepsakeApp.swift in Sources */,
 				2AF5788ADCEF0CA35FBBCF05 /* LocationAuthorizationObserver.swift in Sources */,

@@ -418,6 +418,23 @@ final class LocalCaptureCoordinator {
         }
     }
 
+    @discardableResult
+    func runtimeInterrupted(epoch: CaptureEpoch, generation: UUID) -> Bool {
+        guard uncertainty == nil,
+              pendingStop == nil,
+              let runtimeOwner,
+              runtimeOwner.epoch == epoch,
+              runtimeOwner.generation == generation,
+              let controlSnapshot,
+              controlSnapshot.activeEpoch == epoch else {
+            return false
+        }
+
+        closeRuntimeAndAdvanceGeneration()
+        stateFromSnapshotWithoutRuntime(controlSnapshot)
+        return true
+    }
+
     func retryStop() async throws -> LocalCaptureStopResult {
         try await withCheckedThrowingContinuation { continuation in
             guard let pendingStop,
