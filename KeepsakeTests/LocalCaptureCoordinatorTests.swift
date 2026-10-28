@@ -108,7 +108,7 @@ struct LocalCaptureCoordinatorTests {
 
         await store.releaseAppend()
         let receipt = try await append.value
-        let lookup = await store.lookupReceipt(operationID: operationID)
+        let lookup = try await store.lookupReceipt(operationID: operationID)
         guard case .found(.batch(let storedReceipt)) = lookup else {
             Issue.record("Runtime interruption discarded the admitted append receipt")
             return
