@@ -30,12 +30,18 @@ Runtime generations now fence old stream/session completions. Start waits for st
 
 These changes do not make Stop durable or activate automatic recovery. The SQLite store remains separate from the app's default JSONL path.
 
+## Synthetic durable capture foundation
+
+An explicitly created schema-v2 store now provides durable capture epochs, Begin/Stop fences, bounded ordered batches and retained operation receipts. A separate, unactivated coordinator serializes those commands, closes runtime admission immediately on Stop and keeps uncertainty vetoed until explicit reconciliation. Neither is selected by the app; its Stop remains runtime-only. See [the local capture foundation](docs/local-capture-foundation.md) for limits and validation boundaries.
+
 ## Validation status
 
 This is a curated source checkpoint, not a release. The portable isolated host at commit `49a6c1f` built unsigned with the iOS Simulator 27.1 SDK, and all nine `RouteRepositoryTests` passed on iOS 26.5, including the corrected post-rename regression. The test now checks exact prepared-to-published bytes and bit-exact decoded sample values without assuming a stable key order across independent JSON encodings.
 
 The earlier original local staging result remains part of the provenance: 53 passed, one failed and two hardware-only checks were skipped among 56 selected tests. The new narrow run did not rerun the other three suites, compile the main app target or validate Wave 2, hardware protection, field coverage or app resource performance.
 
+The corrected combined isolated host at PR3 commit `8e4c2eb` built unsigned with SDK 27.1 and completed 80 tests across five suites: 78 passed, none failed, and two hardware-only checks skipped. All four metadata-fault boundary cases passed with the normalized selector and exact injection-count assertion. This qualifies that synthetic snapshot, not the main app, hardware protection or field/resource performance. The earlier `628b0d3` build's 77-pass/1-fail/2-skip result remains preserved.
+
 ## Scope boundary
 
-Durable recording intent, bounded history queries and measured resource use are planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.
+Default-store integration, bounded history queries and measured resource use remain planned local foundations. Backend sync, group sharing, saved-place alerts, memories and chat are not enabled by this prototype.

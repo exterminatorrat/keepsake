@@ -1,7 +1,7 @@
 import Foundation
 import Darwin
 
-enum SampleIngestResult: Equatable, Sendable {
+enum SampleIngestResult: Codable, Equatable, Sendable {
     case stored
     case duplicate
     case outOfOrder

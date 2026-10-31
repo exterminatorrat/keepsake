@@ -20,8 +20,10 @@ targets:
       - path: ../Keepsake/Domain/RecordingState.swift
       - path: ../Keepsake/Location/RecorderModel.swift
       - path: ../Keepsake/Location/RecorderLifecycleSupport.swift
+      - path: ../Keepsake/Location/LocalCaptureCoordinator.swift
       - path: ../Keepsake/Location/LocationAuthorizationObserver.swift
       - path: ../Keepsake/Storage/RouteRepository.swift
+      - path: ../Keepsake/Storage/LocalCapturePersistence.swift
       - path: ../Keepsake/Storage/RouteStore.swift
       - path: ../Keepsake/Storage/RouteStoreFiles.swift
     settings:
@@ -42,6 +44,9 @@ targets:
       - path: ../KeepsakeTests/RouteRepositoryTests.swift
       - path: ../KeepsakeTests/RecorderModelTests.swift
       - path: ../KeepsakeTests/LocationAuthorizationObserverTests.swift
+      - path: ../KeepsakeTests/LocalCapturePersistenceTests.swift
+      - path: ../KeepsakeTests/CapturePersistenceTests.swift
+      - path: ../KeepsakeTests/LocalCaptureCoordinatorTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:
