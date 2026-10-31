@@ -1,0 +1,47 @@
+name: Keepsake
+options:
+  bundleIdPrefix: com.keepsake
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+targets:
+  Keepsake:
+    type: application
+    platform: iOS
+    sources:
+      - path: Keepsake
+        excludes:
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_APP_BUNDLE_IDENTIFIER)"
+        INFOPLIST_FILE: Keepsake/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TARGETED_DEVICE_FAMILY: "1,2"
+        OTHER_LDFLAGS: "$(inherited) -lsqlite3"
+  KeepsakeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: KeepsakeTests
+    dependencies:
+      - target: Keepsake
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.keepsake.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Keepsake.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Keepsake
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  Keepsake:
+    build:
+      targets:
+        Keepsake: all
+        KeepsakeTests: [test]
+    test:
+      targets:
+        - KeepsakeTests

@@ -1,0 +1,489 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E20000000000000000000004 /* RecorderLifecycleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000004 /* RecorderLifecycleSupport.swift */; };
+		E20000000000000000000005 /* RecorderModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000005 /* RecorderModelTests.swift */; };
+		E20000000000000000000006 /* LocationAuthorizationObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */; };
+		E20000000000000000000001 /* RouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* RouteStore.swift */; };
+		E20000000000000000000002 /* RouteStoreFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* RouteStoreFiles.swift */; };
+		E20000000000000000000003 /* RouteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* RouteStoreTests.swift */; };
+		2AF5788ADCEF0CA35FBBCF05 /* LocationAuthorizationObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A839C69BBA3597989E73AF1 /* LocationAuthorizationObserver.swift */; };
+		3DA448D5D02FCD699E45E2BD /* RecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5924C921F03E004AC98F4A2 /* RecorderModel.swift */; };
+		51E660A690BC963853D20F79 /* RecordingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFD719F7A8D2D6171272F7D /* RecordingState.swift */; };
+		7D6FFAADD1CB26727423A370 /* RouteHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36C27A1B6CADFBF3EAFA7124 /* RouteHomeView.swift */; };
+		A13D71C6FD20A15438A002E7 /* RouteHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBFFE0102EBB1C88EEF83D51 /* RouteHistoryTests.swift */; };
+		B3423E01E8D267E2D2CED358 /* RecordingStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690F8F3000BA4A3BE88AFF24 /* RecordingStateTests.swift */; };
+		B98D31A278D78F6D238502DA /* RouteHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED43949096182B5754A900E /* RouteHistory.swift */; };
+		BC704A185B12183F2A9B7FF0 /* KeepsakeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78A3677FC5B2787A3794B1CB /* KeepsakeApp.swift */; };
+		BEE027C95E90157F4CE2BC36 /* RouteRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD52CA16F7EE0032324FA76 /* RouteRepositoryTests.swift */; };
+		DCCE7A6C8DC1FE5091828C21 /* RouteSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418D55C6716F5C9605541A7B /* RouteSample.swift */; };
+		F23C03E4DA69370D40E3BBBC /* RouteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C14FC8BACAACD2900E595D /* RouteRepository.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		76669DF490B9E53E45CDA5EA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 234FB9EC5CAD42C835BDCB4D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FF148E82F41BA1D7EB5D5C9F;
+			remoteInfo = Keepsake;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E10000000000000000000004 /* RecorderLifecycleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderLifecycleSupport.swift; sourceTree = "<group>"; };
+		E10000000000000000000005 /* RecorderModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModelTests.swift; sourceTree = "<group>"; };
+		E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationAuthorizationObserverTests.swift; sourceTree = "<group>"; };
+		E10000000000000000000001 /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
+		E10000000000000000000002 /* RouteStoreFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStoreFiles.swift; sourceTree = "<group>"; };
+		E10000000000000000000003 /* RouteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStoreTests.swift; sourceTree = "<group>"; };
+		0A839C69BBA3597989E73AF1 /* LocationAuthorizationObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationAuthorizationObserver.swift; sourceTree = "<group>"; };
+		36C27A1B6CADFBF3EAFA7124 /* RouteHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHomeView.swift; sourceTree = "<group>"; };
+		418D55C6716F5C9605541A7B /* RouteSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSample.swift; sourceTree = "<group>"; };
+		4CFD719F7A8D2D6171272F7D /* RecordingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingState.swift; sourceTree = "<group>"; };
+		56C14FC8BACAACD2900E595D /* RouteRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRepository.swift; sourceTree = "<group>"; };
+		690F8F3000BA4A3BE88AFF24 /* RecordingStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingStateTests.swift; sourceTree = "<group>"; };
+		78A3677FC5B2787A3794B1CB /* KeepsakeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepsakeApp.swift; sourceTree = "<group>"; };
+		9DD52CA16F7EE0032324FA76 /* RouteRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRepositoryTests.swift; sourceTree = "<group>"; };
+		9ED43949096182B5754A900E /* RouteHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistory.swift; sourceTree = "<group>"; };
+		BA599FFC0C68860365658138 /* Keepsake.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Keepsake.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BDD17F5C35C92C9DA45D1046 /* KeepsakeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KeepsakeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CBFFE0102EBB1C88EEF83D51 /* RouteHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistoryTests.swift; sourceTree = "<group>"; };
+		D5924C921F03E004AC98F4A2 /* RecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModel.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0391C42A9A385D4B45501AF7 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				36C27A1B6CADFBF3EAFA7124 /* RouteHomeView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		03B0034BECF5239C4307E058 = {
+			isa = PBXGroup;
+			children = (
+				05581C82067A74F19AEBAD82 /* Keepsake */,
+				61E881E289660690541A7630 /* KeepsakeTests */,
+				E98F53CDBF775DF451783B0B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		05581C82067A74F19AEBAD82 /* Keepsake */ = {
+			isa = PBXGroup;
+			children = (
+				4738B7C7F0E309FC72BE221B /* App */,
+				57664BF3E0CC52DB1E647328 /* Domain */,
+				FF16DCE34D28A88CDBF3EE0B /* Location */,
+				2C8F1C4E81A2C3665E0621D3 /* Storage */,
+				0391C42A9A385D4B45501AF7 /* Views */,
+			);
+			path = Keepsake;
+			sourceTree = "<group>";
+		};
+		2C8F1C4E81A2C3665E0621D3 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				56C14FC8BACAACD2900E595D /* RouteRepository.swift */,
+				E10000000000000000000001 /* RouteStore.swift */,
+				E10000000000000000000002 /* RouteStoreFiles.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		4738B7C7F0E309FC72BE221B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				78A3677FC5B2787A3794B1CB /* KeepsakeApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		57664BF3E0CC52DB1E647328 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				4CFD719F7A8D2D6171272F7D /* RecordingState.swift */,
+				9ED43949096182B5754A900E /* RouteHistory.swift */,
+				418D55C6716F5C9605541A7B /* RouteSample.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		61E881E289660690541A7630 /* KeepsakeTests */ = {
+			isa = PBXGroup;
+			children = (
+				E10000000000000000000005 /* RecorderModelTests.swift */,
+				E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */,
+				690F8F3000BA4A3BE88AFF24 /* RecordingStateTests.swift */,
+				CBFFE0102EBB1C88EEF83D51 /* RouteHistoryTests.swift */,
+				9DD52CA16F7EE0032324FA76 /* RouteRepositoryTests.swift */,
+				E10000000000000000000003 /* RouteStoreTests.swift */,
+			);
+			path = KeepsakeTests;
+			sourceTree = "<group>";
+		};
+		E98F53CDBF775DF451783B0B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BA599FFC0C68860365658138 /* Keepsake.app */,
+				BDD17F5C35C92C9DA45D1046 /* KeepsakeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FF16DCE34D28A88CDBF3EE0B /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				E10000000000000000000004 /* RecorderLifecycleSupport.swift */,
+				0A839C69BBA3597989E73AF1 /* LocationAuthorizationObserver.swift */,
+				D5924C921F03E004AC98F4A2 /* RecorderModel.swift */,
+			);
+			path = Location;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4383F5921A48279815A21CBB /* KeepsakeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 90333AD73626B9F4FA4A1E0C /* Build configuration list for PBXNativeTarget "KeepsakeTests" */;
+			buildPhases = (
+				BD06F8DFF0283FE50B6A5A36 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1906ECFCD9159245C39FA58C /* PBXTargetDependency */,
+			);
+			name = KeepsakeTests;
+			packageProductDependencies = (
+			);
+			productName = KeepsakeTests;
+			productReference = BDD17F5C35C92C9DA45D1046 /* KeepsakeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		FF148E82F41BA1D7EB5D5C9F /* Keepsake */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 34BA2D16555DDF1D026BBB8A /* Build configuration list for PBXNativeTarget "Keepsake" */;
+			buildPhases = (
+				F27401B85256B7F1706D67E3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Keepsake;
+			packageProductDependencies = (
+			);
+			productName = Keepsake;
+			productReference = BA599FFC0C68860365658138 /* Keepsake.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		234FB9EC5CAD42C835BDCB4D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = 8C21078A4951572C78844C1B /* Build configuration list for PBXProject "Keepsake" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 03B0034BECF5239C4307E058;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E98F53CDBF775DF451783B0B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FF148E82F41BA1D7EB5D5C9F /* Keepsake */,
+				4383F5921A48279815A21CBB /* KeepsakeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BD06F8DFF0283FE50B6A5A36 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E20000000000000000000005 /* RecorderModelTests.swift in Sources */,
+				E20000000000000000000006 /* LocationAuthorizationObserverTests.swift in Sources */,
+				B3423E01E8D267E2D2CED358 /* RecordingStateTests.swift in Sources */,
+				A13D71C6FD20A15438A002E7 /* RouteHistoryTests.swift in Sources */,
+				BEE027C95E90157F4CE2BC36 /* RouteRepositoryTests.swift in Sources */,
+				E20000000000000000000003 /* RouteStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F27401B85256B7F1706D67E3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E20000000000000000000004 /* RecorderLifecycleSupport.swift in Sources */,
+				BC704A185B12183F2A9B7FF0 /* KeepsakeApp.swift in Sources */,
+				2AF5788ADCEF0CA35FBBCF05 /* LocationAuthorizationObserver.swift in Sources */,
+				3DA448D5D02FCD699E45E2BD /* RecorderModel.swift in Sources */,
+				51E660A690BC963853D20F79 /* RecordingState.swift in Sources */,
+				B98D31A278D78F6D238502DA /* RouteHistory.swift in Sources */,
+				7D6FFAADD1CB26727423A370 /* RouteHomeView.swift in Sources */,
+				F23C03E4DA69370D40E3BBBC /* RouteRepository.swift in Sources */,
+				E20000000000000000000001 /* RouteStore.swift in Sources */,
+				E20000000000000000000002 /* RouteStoreFiles.swift in Sources */,
+				DCCE7A6C8DC1FE5091828C21 /* RouteSample.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1906ECFCD9159245C39FA58C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FF148E82F41BA1D7EB5D5C9F /* Keepsake */;
+			targetProxy = 76669DF490B9E53E45CDA5EA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0B3688E2151C9D1DC74D9D2D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		2E643514E896DC16472FABD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Keepsake/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_APP_BUNDLE_IDENTIFIER)";
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D712024D862038FE1F1BB108 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.keepsake.app.tests;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Keepsake.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Keepsake";
+			};
+			name = Release;
+		};
+		DBCCD2468E7CE2B6BBBDA87B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				OTHER_LDFLAGS = "$(inherited) -lsqlite3";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Keepsake/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_APP_BUNDLE_IDENTIFIER)";
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		FD442CD772A25F41C12EF389 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		FFE86C9763A9145C1A3692CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.keepsake.app.tests;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Keepsake.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Keepsake";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		34BA2D16555DDF1D026BBB8A /* Build configuration list for PBXNativeTarget "Keepsake" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2E643514E896DC16472FABD1 /* Debug */,
+				DBCCD2468E7CE2B6BBBDA87B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8C21078A4951572C78844C1B /* Build configuration list for PBXProject "Keepsake" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD442CD772A25F41C12EF389 /* Debug */,
+				0B3688E2151C9D1DC74D9D2D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		90333AD73626B9F4FA4A1E0C /* Build configuration list for PBXNativeTarget "KeepsakeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FFE86C9763A9145C1A3692CF /* Debug */,
+				D712024D862038FE1F1BB108 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 234FB9EC5CAD42C835BDCB4D /* Project object */;
+}
