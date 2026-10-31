@@ -28,6 +28,13 @@ struct SegmentedRoute: Equatable, Sendable {
     let gaps: [CoverageGap]
 }
 
+struct RouteViewport: Equatable, Sendable {
+    let centerLatitude: Double
+    let centerLongitude: Double
+    let latitudeSpan: Double
+    let longitudeSpan: Double
+}
+
 enum RouteHistory {
     static let maximumGap: TimeInterval = 5 * 60
     static let maximumRouteAccuracy: Double = 100
@@ -44,6 +51,44 @@ enum RouteHistory {
 
     static func retainedSamples(_ samples: [RouteSample], after cutoff: Date) -> [RouteSample] {
         samples.filter { $0.observedAt >= cutoff }
+    }
+
+    static func viewport(for samples: [RouteSample]) -> RouteViewport? {
+        let validSamples = samples.filter(\.isValid)
+        guard let minimumLatitude = validSamples.map(\.latitude).min(),
+              let maximumLatitude = validSamples.map(\.latitude).max() else {
+            return nil
+        }
+
+        let longitudes = validSamples.map { sample in
+            let longitude = sample.longitude.truncatingRemainder(dividingBy: 360)
+            return longitude < 0 ? longitude + 360 : longitude
+        }.sorted()
+
+        var largestGap = 0.0
+        var largestGapEndIndex = 0
+        for index in longitudes.indices {
+            let nextIndex = (index + 1) % longitudes.count
+            let nextLongitude = longitudes[nextIndex] + (nextIndex == 0 ? 360 : 0)
+            let gap = nextLongitude - longitudes[index]
+            if gap > largestGap {
+                largestGap = gap
+                largestGapEndIndex = index
+            }
+        }
+
+        let longitudeArc = 360 - largestGap
+        let arcStart = longitudes[(largestGapEndIndex + 1) % longitudes.count]
+        let centerLongitude = (arcStart + longitudeArc / 2 + 180)
+            .truncatingRemainder(dividingBy: 360) - 180
+        let latitudeRange = maximumLatitude - minimumLatitude
+
+        return RouteViewport(
+            centerLatitude: min(90, max(-90, (minimumLatitude + maximumLatitude) / 2)),
+            centerLongitude: centerLongitude,
+            latitudeSpan: min(180, max(0.01, latitudeRange * 1.5)),
+            longitudeSpan: min(360, max(0.01, longitudeArc * 1.5))
+        )
     }
 
     static func availableDays(in calendar: Calendar, from samples: [RouteSample]) -> [Date] {
