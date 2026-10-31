@@ -598,7 +598,7 @@ final class LocalCaptureCoordinator {
             guard isValid(snapshot) else {
                 throw LocalCaptureCoordinatorError.invalidControlSnapshot
             }
-            if snapshot == request.controlBefore {
+            if snapshot.hasSameRecordingIntent(as: request.controlBefore) {
                 controlSnapshot = snapshot
                 release(request)
                 resume(&request.waiters, returning: receipt)
@@ -729,7 +729,7 @@ final class LocalCaptureCoordinator {
                 return
             }
 
-            guard snapshot == request.controlBefore,
+            guard snapshot.hasSameRecordingIntent(as: request.controlBefore),
                   snapshot.activeEpoch == request.epoch else {
                 controlSnapshot = snapshot
                 request.status = .uncertain
@@ -851,7 +851,7 @@ final class LocalCaptureCoordinator {
             }
             return .beginCommitted(matched)
         }
-        guard matched == nil, snapshot == request.controlBefore else {
+        guard matched == nil, snapshot.hasSameRecordingIntent(as: request.controlBefore) else {
             return unresolved(request.operationID, kind: .begin, reason: .controlChanged)
         }
 
@@ -922,7 +922,7 @@ final class LocalCaptureCoordinator {
             return .stopCommitted(matched)
         }
 
-        guard matched == nil, snapshot == request.controlBefore else {
+        guard matched == nil, snapshot.hasSameRecordingIntent(as: request.controlBefore) else {
             return unresolved(request.operationID, kind: .stop, reason: .controlChanged)
         }
 
@@ -1142,7 +1142,7 @@ final class LocalCaptureCoordinator {
     }
 
     private func isValid(_ snapshot: CaptureControlSnapshot) -> Bool {
-        guard snapshot.revision >= 0 else {
+        guard snapshot.revision >= 0, snapshot.hasValidHistoryState else {
             return false
         }
         if let epoch = snapshot.activeEpoch, epoch.revision <= 0 {
@@ -1173,6 +1173,7 @@ final class LocalCaptureCoordinator {
             return false
         case .notFoundationStore, .invalidControlState, .staleControlRevision, .staleEpoch,
              .activeRecordingMismatch, .revisionExhausted, .operationConflict, .batchTooLarge,
+             .invalidHistoryRequest, .invalidCursor, .cursorInvalidated, .oversizedRecord, .recordingActive,
              .notCommitted:
             return true
         }

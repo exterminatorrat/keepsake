@@ -31,6 +31,7 @@ struct RouteStoreSeams: Sendable {
     let protectAndVerify: @Sendable (URL, RouteStoreProtectedItem) throws -> Void
     let requireCapacity: @Sendable (URL, Int64, RouteStoreCapacityCheck) throws -> Void
     let fault: @Sendable (RouteStoreFaultPoint) throws -> Void
+    let readProtection: @Sendable (URL) throws -> FileProtectionType?
 
     init(
         protectAndVerify: @escaping @Sendable (URL, RouteStoreProtectedItem) throws -> Void = {
@@ -39,11 +40,15 @@ struct RouteStoreSeams: Sendable {
         requireCapacity: @escaping @Sendable (URL, Int64, RouteStoreCapacityCheck) throws -> Void = { url, bytes, _ in
             try RouteStoreFiles.requireCapacity(at: url, requiredBytes: bytes)
         },
-        fault: @escaping @Sendable (RouteStoreFaultPoint) throws -> Void = { _ in }
+        fault: @escaping @Sendable (RouteStoreFaultPoint) throws -> Void = { _ in },
+        readProtection: @escaping @Sendable (URL) throws -> FileProtectionType? = {
+            try RouteStoreFiles.readProtection(at: $0)
+        }
     ) {
         self.protectAndVerify = protectAndVerify
         self.requireCapacity = requireCapacity
         self.fault = fault
+        self.readProtection = readProtection
     }
 }
 
@@ -487,12 +492,16 @@ enum RouteStoreFiles {
         }
     }
 
+    static func readProtection(at url: URL) throws -> FileProtectionType? {
+        let attributes = try FileManager.default.attributesOfItem(atPath: posixPath(url))
+        return attributes[.protectionKey] as? FileProtectionType
+    }
+
     static func protectAndVerify(
         _ url: URL,
         as item: RouteStoreProtectedItem,
         readProtection: (URL) throws -> FileProtectionType? = { url in
-            let attributes = try FileManager.default.attributesOfItem(atPath: posixPath(url))
-            return attributes[.protectionKey] as? FileProtectionType
+            try RouteStoreFiles.readProtection(at: url)
         }
     ) throws {
         switch item {
