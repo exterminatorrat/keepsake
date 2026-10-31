@@ -10,9 +10,12 @@ struct LocalCaptureWriteAdmissionTests {
         let invalid = sample(recordingID: recordingID, second: 1, latitude: 91)
         let duplicate = sample(recordingID: recordingID, second: 1)
 
-        #expect(admission.shouldAdmit(invalid))
-        #expect(admission.shouldAdmit(duplicate))
-        #expect(admission.shouldAdmit(duplicate))
+        let admittedInvalidSample = admission.shouldAdmit(invalid)
+        #expect(admittedInvalidSample)
+        let admittedDuplicateSample = admission.shouldAdmit(duplicate)
+        #expect(admittedDuplicateSample)
+        let admittedRepeatedDuplicateSample = admission.shouldAdmit(duplicate)
+        #expect(admittedRepeatedDuplicateSample)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -21,10 +24,18 @@ struct LocalCaptureWriteAdmissionTests {
         let firstRecordingID = UUID()
         let secondRecordingID = UUID()
 
-        #expect(admission.shouldAdmit(sample(recordingID: firstRecordingID, second: 100)))
-        #expect(!admission.shouldAdmit(sample(recordingID: firstRecordingID, second: 101)))
-        #expect(admission.shouldAdmit(sample(recordingID: secondRecordingID, second: 1)))
-        #expect(!admission.shouldAdmit(sample(recordingID: secondRecordingID, second: 2)))
+        let admittedFirstRecordingSample = admission.shouldAdmit(
+            sample(recordingID: firstRecordingID, second: 100))
+        #expect(admittedFirstRecordingSample)
+        let rejectedFirstRecordingNextSample = admission.shouldAdmit(
+            sample(recordingID: firstRecordingID, second: 101))
+        #expect(!rejectedFirstRecordingNextSample)
+        let admittedSecondRecordingSample = admission.shouldAdmit(
+            sample(recordingID: secondRecordingID, second: 1))
+        #expect(admittedSecondRecordingSample)
+        let rejectedSecondRecordingNextSample = admission.shouldAdmit(
+            sample(recordingID: secondRecordingID, second: 2))
+        #expect(!rejectedSecondRecordingNextSample)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -34,27 +45,36 @@ struct LocalCaptureWriteAdmissionTests {
 
         #expect(LocalCaptureWriteAdmission.reliableAccuracyBoundaryMeters == RouteHistory.maximumRouteAccuracy)
 
-        #expect(admission.shouldAdmit(sample(recordingID: recordingID, second: 0, stationary: true)))
-        #expect(admission.shouldAdmit(sample(recordingID: recordingID, second: 1, stationary: false)))
-        #expect(admission.shouldAdmit(sample(recordingID: recordingID, second: 2, stationary: true)))
-        #expect(!admission.shouldAdmit(sample(
+        let admittedStationaryStart = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 0, stationary: true))
+        #expect(admittedStationaryStart)
+        let admittedMovementTransition = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 1, stationary: false))
+        #expect(admittedMovementTransition)
+        let admittedStationaryTransition = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 2, stationary: true))
+        #expect(admittedStationaryTransition)
+        let rejectedAccuracyBoundary = admission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 3,
             accuracy: LocalCaptureWriteAdmission.reliableAccuracyBoundaryMeters,
             stationary: true
-        )))
-        #expect(admission.shouldAdmit(sample(
+        ))
+        #expect(!rejectedAccuracyBoundary)
+        let admittedAboveAccuracyBoundary = admission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 4,
             accuracy: LocalCaptureWriteAdmission.reliableAccuracyBoundaryMeters + 0.1,
             stationary: true
-        )))
-        #expect(admission.shouldAdmit(sample(
+        ))
+        #expect(admittedAboveAccuracyBoundary)
+        let admittedAtAccuracyBoundaryAfterRecovery = admission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 5,
             accuracy: LocalCaptureWriteAdmission.reliableAccuracyBoundaryMeters,
             stationary: true
-        )))
+        ))
+        #expect(admittedAtAccuracyBoundaryAfterRecovery)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -62,16 +82,32 @@ struct LocalCaptureWriteAdmissionTests {
         let recordingID = UUID()
         var movingAdmission = LocalCaptureWriteAdmission(mode: .boundedMovementStationary)
 
-        #expect(movingAdmission.shouldAdmit(sample(recordingID: recordingID, second: 0, stationary: false)))
-        #expect(!movingAdmission.shouldAdmit(sample(recordingID: recordingID, second: 14, stationary: false)))
-        #expect(movingAdmission.shouldAdmit(sample(recordingID: recordingID, second: 15, stationary: false)))
-        #expect(!movingAdmission.shouldAdmit(sample(recordingID: recordingID, second: 29, stationary: false)))
-        #expect(movingAdmission.shouldAdmit(sample(recordingID: recordingID, second: 30, stationary: false)))
+        let admittedInitialMovingSample = movingAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 0, stationary: false))
+        #expect(admittedInitialMovingSample)
+        let rejectedMovingBeforeHeartbeat = movingAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 14, stationary: false))
+        #expect(!rejectedMovingBeforeHeartbeat)
+        let admittedMovingHeartbeat = movingAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 15, stationary: false))
+        #expect(admittedMovingHeartbeat)
+        let rejectedMovingBeforeNextHeartbeat = movingAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 29, stationary: false))
+        #expect(!rejectedMovingBeforeNextHeartbeat)
+        let admittedNextMovingHeartbeat = movingAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 30, stationary: false))
+        #expect(admittedNextMovingHeartbeat)
 
         var stationaryAdmission = LocalCaptureWriteAdmission(mode: .boundedMovementStationary)
-        #expect(stationaryAdmission.shouldAdmit(sample(recordingID: recordingID, second: 0)))
-        #expect(!stationaryAdmission.shouldAdmit(sample(recordingID: recordingID, second: 59)))
-        #expect(stationaryAdmission.shouldAdmit(sample(recordingID: recordingID, second: 60)))
+        let admittedInitialStationarySample = stationaryAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 0))
+        #expect(admittedInitialStationarySample)
+        let rejectedStationaryBeforeHeartbeat = stationaryAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 59))
+        #expect(!rejectedStationaryBeforeHeartbeat)
+        let admittedStationaryHeartbeat = stationaryAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 60))
+        #expect(admittedStationaryHeartbeat)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -79,41 +115,48 @@ struct LocalCaptureWriteAdmissionTests {
         let recordingID = UUID()
         var minimumDistanceAdmission = LocalCaptureWriteAdmission(mode: .boundedMovementStationary)
 
-        #expect(minimumDistanceAdmission.shouldAdmit(sample(recordingID: recordingID, second: 0, stationary: false)))
-        #expect(!minimumDistanceAdmission.shouldAdmit(sample(
+        let admittedInitialDistanceSample = minimumDistanceAdmission.shouldAdmit(
+            sample(recordingID: recordingID, second: 0, stationary: false))
+        #expect(admittedInitialDistanceSample)
+        let rejectedSubthresholdMovement = minimumDistanceAdmission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 1,
             latitude: latitude(northMeters: 24.9),
             stationary: false
-        )))
-        #expect(minimumDistanceAdmission.shouldAdmit(sample(
+        ))
+        #expect(!rejectedSubthresholdMovement)
+        let admittedMovementBeyondThreshold = minimumDistanceAdmission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 2,
             latitude: latitude(northMeters: 25.1),
             stationary: false
-        )))
+        ))
+        #expect(admittedMovementBeyondThreshold)
 
         var accuracyAdmission = LocalCaptureWriteAdmission(mode: .boundedMovementStationary)
-        #expect(accuracyAdmission.shouldAdmit(sample(
+        let admittedInitialAccuracySample = accuracyAdmission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 0,
             accuracy: 40,
             stationary: false
-        )))
-        #expect(!accuracyAdmission.shouldAdmit(sample(
+        ))
+        #expect(admittedInitialAccuracySample)
+        let rejectedSubthresholdAccuracyChange = accuracyAdmission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 1,
             latitude: latitude(northMeters: 39.9),
             accuracy: 40,
             stationary: false
-        )))
-        #expect(accuracyAdmission.shouldAdmit(sample(
+        ))
+        #expect(!rejectedSubthresholdAccuracyChange)
+        let admittedAccuracyChangeBeyondThreshold = accuracyAdmission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 2,
             latitude: latitude(northMeters: 40.1),
             accuracy: 40,
             stationary: false
-        )))
+        ))
+        #expect(admittedAccuracyChangeBeyondThreshold)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -121,17 +164,28 @@ struct LocalCaptureWriteAdmissionTests {
         var admission = LocalCaptureWriteAdmission(mode: .boundedMovementStationary)
         let recordingID = UUID()
 
-        #expect(admission.shouldAdmit(sample(recordingID: recordingID, second: 10)))
-        #expect(!admission.shouldAdmit(sample(recordingID: recordingID, second: 11)))
-        #expect(admission.shouldAdmit(sample(recordingID: recordingID, second: 100, latitude: 91, stationary: false)))
-        #expect(!admission.shouldAdmit(sample(recordingID: recordingID, second: 12)))
-        #expect(admission.shouldAdmit(sample(
+        let admittedInitialSample = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 10))
+        #expect(admittedInitialSample)
+        let rejectedNearSample = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 11))
+        #expect(!rejectedNearSample)
+        let admittedInvalidCoordinate = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 100, latitude: 91, stationary: false))
+        #expect(admittedInvalidCoordinate)
+        let rejectedAfterInvalidCoordinate = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 12))
+        #expect(!rejectedAfterInvalidCoordinate)
+        let admittedOutOfOrderMovement = admission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 11.5,
             latitude: latitude(northMeters: 100),
             stationary: false
-        )))
-        #expect(!admission.shouldAdmit(sample(recordingID: recordingID, second: 13)))
+        ))
+        #expect(admittedOutOfOrderMovement)
+        let rejectedAfterOutOfOrderSample = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 13))
+        #expect(!rejectedAfterOutOfOrderSample)
     }
 
     @Test(.timeLimit(.minutes(1)))
