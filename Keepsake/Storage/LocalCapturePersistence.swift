@@ -255,6 +255,7 @@ protocol LocalCapturePersistence: Sendable {
     func beginRecording(recordingID: UUID, expectedControlRevision: Int64, operationID: UUID) async throws -> CaptureControlReceipt
     func appendBatch(_ samples: [RouteSample], epoch: CaptureEpoch, operationID: UUID, now: Date) async throws -> CaptureBatchReceipt
     func stopRecording(epoch: CaptureEpoch, expectedControlRevision: Int64, operationID: UUID) async throws -> CaptureControlReceipt
+    func clearHistory(expectedControlRevision: Int64, operationID: UUID) async throws -> CaptureClearReceipt
     func lookupReceipt(operationID: UUID) async throws -> CaptureReceiptLookup
     func reconcileSamples(_ samples: [RouteSample], epoch: CaptureEpoch) async throws -> [CaptureSampleReconciliation]
 }

@@ -14,6 +14,7 @@ enum LocalCaptureUncertaintyKind: Equatable {
     case begin
     case append
     case stop
+    case clear
 }
 
 enum LocalCaptureUncertaintyReason: Equatable, Sendable {
@@ -50,6 +51,7 @@ enum LocalCaptureCoordinatorError: Error, Equatable {
     case operationConflict(UUID)
     case supersededByStop
     case noPendingStop
+    case historyClearPending
     case invalidControlSnapshot
     case receiptMismatch(UUID)
 }
@@ -64,6 +66,7 @@ enum LocalCaptureReconciliationResult: Equatable, Sendable {
     case appendCommitted(CaptureBatchReceipt)
     case appendSamplesMatched(UUID)
     case stopCommitted(CaptureControlReceipt)
+    case clearCommitted(CaptureClearReceipt)
     case knownNotCommitted(UUID)
     case unresolved(UUID, LocalCaptureUncertaintyReason)
     case nothingToReconcile
@@ -140,6 +143,7 @@ final class LocalCaptureCoordinator {
         case running
         case failed
         case uncertain
+        case completed
     }
 
     private final class StopRequest {
@@ -160,6 +164,21 @@ final class LocalCaptureCoordinator {
         }
     }
 
+    private final class ClearRequest {
+        let operationID: UUID
+        let expectedControlRevision: Int64
+        let precedingStop: StopRequest?
+        var controlBefore: CaptureControlSnapshot?
+        var receipt: CaptureClearReceipt?
+        var waiters: [CheckedContinuation<CaptureClearReceipt, any Error>] = []
+
+        init(operationID: UUID, expectedControlRevision: Int64, precedingStop: StopRequest?) {
+            self.operationID = operationID
+            self.expectedControlRevision = expectedControlRevision
+            self.precedingStop = precedingStop
+        }
+    }
+
     private final class ReconciliationRequest {
         var waiters: [CheckedContinuation<LocalCaptureReconciliationResult, any Error>] = []
     }
@@ -168,12 +187,14 @@ final class LocalCaptureCoordinator {
         case begin(BeginRequest)
         case append(AppendRequest)
         case stop(StopRequest)
+        case clear(ClearRequest)
 
         var operationID: UUID {
             switch self {
             case .begin(let request): request.operationID
             case .append(let request): request.operationID
             case .stop(let request): request.operationID
+            case .clear(let request): request.operationID
             }
         }
 
@@ -182,6 +203,7 @@ final class LocalCaptureCoordinator {
             case .begin: .begin
             case .append: .append
             case .stop: .stop
+            case .clear: .clear
             }
         }
     }
@@ -192,6 +214,7 @@ final class LocalCaptureCoordinator {
         case append(AppendRequest)
         case stop(StopRequest)
         case retryStop(StopRequest)
+        case clear(ClearRequest)
         case reconcile(ReconciliationRequest)
     }
 
@@ -203,6 +226,7 @@ final class LocalCaptureCoordinator {
     private var pendingControlRead: ControlRead?
     private var pendingBegin: BeginRequest?
     private var pendingStop: StopRequest?
+    private var pendingClear: ClearRequest?
     private var pendingReconciliation: ReconciliationRequest?
     private var pendingAppends: [UUID: AppendRequest] = [:]
     private var uncertainty: UncertainOperation?
@@ -264,6 +288,10 @@ final class LocalCaptureCoordinator {
             }
             guard uncertainty == nil else {
                 continuation.resume(throwing: LocalCaptureCoordinatorError.unresolvedOperation(uncertainty!.operationID))
+                return
+            }
+            guard pendingClear == nil else {
+                continuation.resume(throwing: LocalCaptureCoordinatorError.historyClearPending)
                 return
             }
             guard pendingStop == nil else {
@@ -418,6 +446,57 @@ final class LocalCaptureCoordinator {
         }
     }
 
+    func clearHistory(
+        expectedControlRevision: Int64,
+        operationID: UUID = UUID()
+    ) async throws -> CaptureClearReceipt {
+        try await withCheckedThrowingContinuation { continuation in
+            guard uncertainty == nil else {
+                continuation.resume(throwing: LocalCaptureCoordinatorError.unresolvedOperation(uncertainty!.operationID))
+                return
+            }
+            if let pendingClear {
+                guard pendingClear.operationID == operationID else {
+                    continuation.resume(throwing: LocalCaptureCoordinatorError.historyClearPending)
+                    return
+                }
+                guard pendingClear.expectedControlRevision == expectedControlRevision else {
+                    continuation.resume(throwing: LocalCaptureCoordinatorError.operationConflict(operationID))
+                    return
+                }
+                pendingClear.waiters.append(continuation)
+                return
+            }
+            guard let controlSnapshot else {
+                continuation.resume(throwing: LocalCaptureCoordinatorError.storageNotReady)
+                return
+            }
+            guard runtimeOwner == nil, pendingBegin == nil else {
+                continuation.resume(throwing: CapturePersistenceError.recordingActive)
+                return
+            }
+            if let pendingStop {
+                guard pendingStop.status == .queued || pendingStop.status == .running else {
+                    continuation.resume(throwing: LocalCaptureCoordinatorError.stopUnconfirmed(pendingStop.operationID))
+                    return
+                }
+            } else if controlSnapshot.activeEpoch != nil {
+                continuation.resume(throwing: CapturePersistenceError.recordingActive)
+                return
+            }
+
+            let request = ClearRequest(
+                operationID: operationID,
+                expectedControlRevision: expectedControlRevision,
+                precedingStop: pendingStop
+            )
+            request.waiters.append(continuation)
+            pendingClear = request
+            queue.append(.clear(request))
+            startWorkerIfNeeded()
+        }
+    }
+
     @discardableResult
     func runtimeInterrupted(epoch: CaptureEpoch, generation: UUID) -> Bool {
         guard uncertainty == nil,
@@ -506,6 +585,8 @@ final class LocalCaptureCoordinator {
             await processStop(request)
         case .retryStop(let request):
             await processStopRetry(request)
+        case .clear(let request):
+            await processClear(request)
         case .reconcile(let request):
             await processReconciliation(request)
         }
@@ -656,6 +737,7 @@ final class LocalCaptureCoordinator {
         guard let epoch = snapshot.activeEpoch else {
             controlSnapshot = snapshot
             pendingStop = nil
+            request.status = .completed
             state = .stopped(controlRevision: snapshot.revision)
             resume(&request.waiters, returning: .alreadyStopped(snapshot))
             return
@@ -696,7 +778,7 @@ final class LocalCaptureCoordinator {
 
             controlSnapshot = current
             pendingStop = nil
-            request.status = .running
+            request.status = .completed
             state = .stopped(controlRevision: current.revision)
             admissionOpen = false
             resume(&request.waiters, returning: .stopped(receipt))
@@ -741,6 +823,7 @@ final class LocalCaptureCoordinator {
                isCurrentStop(receipt, in: snapshot) {
                 controlSnapshot = snapshot
                 pendingStop = nil
+                request.status = .completed
                 state = .stopped(controlRevision: snapshot.revision)
                 resume(&request.waiters, returning: .stopped(receipt))
                 return
@@ -764,6 +847,83 @@ final class LocalCaptureCoordinator {
             request.retryAllowed = true
             state = .stopUnconfirmed(operationID: request.operationID, epoch: request.epoch)
             failStop(request, with: LocalCaptureCoordinatorError.stopUnconfirmed(request.operationID))
+        }
+    }
+
+    private func processClear(_ request: ClearRequest) async {
+        if let precedingStop = request.precedingStop,
+           precedingStop.status != .completed {
+            failClear(request, with: LocalCaptureCoordinatorError.stopUnconfirmed(precedingStop.operationID))
+            return
+        }
+        if let pendingStop {
+            failClear(request, with: LocalCaptureCoordinatorError.stopUnconfirmed(pendingStop.operationID))
+            return
+        }
+
+        let before: CaptureControlSnapshot
+        do {
+            before = try await persistence.readControl()
+            guard isValid(before) else {
+                throw LocalCaptureCoordinatorError.invalidControlSnapshot
+            }
+        } catch {
+            failClear(request, with: error)
+            return
+        }
+        controlSnapshot = before
+        guard runtimeOwner == nil, pendingBegin == nil, before.activeEpoch == nil else {
+            stateFromSnapshotWithoutRuntime(before)
+            failClear(request, with: CapturePersistenceError.recordingActive)
+            return
+        }
+        guard before.revision == request.expectedControlRevision else {
+            stateFromSnapshotWithoutRuntime(before)
+            failClear(request, with: CapturePersistenceError.staleControlRevision)
+            return
+        }
+        request.controlBefore = before
+
+        var returnedReceipt: CaptureClearReceipt?
+        do {
+            let receipt = try await persistence.clearHistory(
+                expectedControlRevision: request.expectedControlRevision,
+                operationID: request.operationID
+            )
+            returnedReceipt = receipt
+            request.receipt = receipt
+            guard validClearReceipt(receipt, request: request) else {
+                throw LocalCaptureCoordinatorError.receiptMismatch(request.operationID)
+            }
+
+            let current = try await persistence.readControl()
+            guard isValid(current) else {
+                throw LocalCaptureCoordinatorError.receiptMismatch(request.operationID)
+            }
+            controlSnapshot = current
+            guard validClearPostState(current, receipt: receipt, request: request) else {
+                throw LocalCaptureCoordinatorError.receiptMismatch(request.operationID)
+            }
+
+            pendingClear = nil
+            stateFromSnapshotWithoutRuntime(current)
+            resume(&request.waiters, returning: receipt)
+        } catch {
+            if returnedReceipt == nil, isDefinitelyNotCommitted(error) {
+                if isStaleFence(error) {
+                    await refreshAfterStaleFence()
+                } else if let controlSnapshot {
+                    stateFromSnapshotWithoutRuntime(controlSnapshot)
+                }
+                failClear(request, with: error)
+                return
+            }
+
+            setUncertainty(
+                .clear(request),
+                reason: uncertaintyReason(for: error, receiptWasReturned: returnedReceipt != nil)
+            )
+            resume(&request.waiters, throwing: LocalCaptureCoordinatorError.unresolvedOperation(request.operationID))
         }
     }
 
@@ -830,6 +990,8 @@ final class LocalCaptureCoordinator {
             return reconcileStop(request, lookup: lookup, snapshot: snapshot)
         case .append(let request):
             return await reconcileAppend(request, lookup: lookup, snapshot: snapshot, persistence: persistence)
+        case .clear(let request):
+            return reconcileClear(request, lookup: lookup, snapshot: snapshot)
         }
     }
 
@@ -934,6 +1096,7 @@ final class LocalCaptureCoordinator {
             }
             uncertainty = nil
             pendingStop = nil
+            request.status = .completed
             stateFromSnapshotWithoutRuntime(snapshot)
             resume(&request.waiters, returning: .stopped(matched))
             return .stopCommitted(matched)
@@ -948,6 +1111,45 @@ final class LocalCaptureCoordinator {
         request.retryAllowed = true
         state = .stopUnconfirmed(operationID: request.operationID, epoch: request.epoch)
         return .knownNotCommitted(request.operationID)
+    }
+
+    private func reconcileClear(
+        _ request: ClearRequest,
+        lookup: CaptureReceiptLookup,
+        snapshot: CaptureControlSnapshot
+    ) -> LocalCaptureReconciliationResult {
+        let receipt: CaptureClearReceipt
+        switch lookup {
+        case .found(.clear(let found)):
+            guard validClearReceipt(found, request: request) else {
+                return unresolved(request.operationID, kind: .clear, reason: .receiptMismatch)
+            }
+            guard clearReceiptIsCoveredBySnapshot(found, snapshot: snapshot) else {
+                return unresolved(request.operationID, kind: .clear, reason: .controlChanged)
+            }
+            receipt = found
+        case .found:
+            return unresolved(request.operationID, kind: .clear, reason: .receiptMismatch)
+        case .unavailable:
+            guard let current = snapshot.lastClearReceipt,
+                  current.operationID == request.operationID,
+                  validClearReceipt(current, request: request),
+                  clearReceiptIsCoveredBySnapshot(current, snapshot: snapshot) else {
+                let reason: LocalCaptureUncertaintyReason = request.receipt == nil
+                    ? .receiptUnavailable
+                    : .receiptMismatch
+                return unresolved(request.operationID, kind: .clear, reason: reason)
+            }
+            if let returned = request.receipt, returned != current {
+                return unresolved(request.operationID, kind: .clear, reason: .receiptMismatch)
+            }
+            receipt = current
+        }
+
+        uncertainty = nil
+        pendingClear = nil
+        stateFromSnapshotWithoutRuntime(snapshot)
+        return .clearCommitted(receipt)
     }
 
     private func reconcileAppend(
@@ -1004,6 +1206,13 @@ final class LocalCaptureCoordinator {
         for waiter in waiters {
             waiter.resume(throwing: error)
         }
+    }
+
+    private func failClear(_ request: ClearRequest, with error: any Error) {
+        if pendingClear === request {
+            pendingClear = nil
+        }
+        resume(&request.waiters, throwing: error)
     }
 
     private func setUncertainty(_ operation: UncertainOperation, reason: LocalCaptureUncertaintyReason) {
@@ -1137,6 +1346,57 @@ final class LocalCaptureCoordinator {
             && receipt.epoch == epoch
             && receipt.controlRevision == expectedControlRevision + 1
             && receipt.commandDigest == digest
+    }
+
+    private func validClearReceipt(_ receipt: CaptureClearReceipt, request: ClearRequest) -> Bool {
+        guard let controlBefore = request.controlBefore else {
+            return false
+        }
+        return receipt.operationID == request.operationID
+            && receipt.controlRevision == request.expectedControlRevision
+            && receipt.controlRevision == controlBefore.revision
+            && controlBefore.activeEpoch == nil
+            && receipt.deletionRevision >= 0
+            && receipt.clearedThroughSequence >= 0
+            && (receipt.clearedThroughSequence == 0 || receipt.deletionRevision > 0)
+            && receipt.commandDigest == CaptureCommandDigest.clear(
+                expectedControlRevision: request.expectedControlRevision
+            )
+    }
+
+    private func validClearPostState(
+        _ snapshot: CaptureControlSnapshot,
+        receipt: CaptureClearReceipt,
+        request: ClearRequest
+    ) -> Bool {
+        guard let controlBefore = request.controlBefore else {
+            return false
+        }
+        return snapshot.revision == controlBefore.revision
+            && snapshot.activeEpoch == controlBefore.activeEpoch
+            && snapshot.lastControlReceipt == controlBefore.lastControlReceipt
+            && (receipt.clearedThroughSequence == controlBefore.clearedThroughSequence
+                || receipt.deletionRevision > controlBefore.deletionRevision)
+            && snapshot.deletionRevision >= controlBefore.deletionRevision
+            && snapshot.clearedThroughSequence >= controlBefore.clearedThroughSequence
+            && (snapshot.clearedThroughSequence == controlBefore.clearedThroughSequence
+                || snapshot.deletionRevision > controlBefore.deletionRevision)
+            && snapshot.lastClearReceipt == receipt
+            && snapshot.deletionRevision >= receipt.deletionRevision
+            && snapshot.clearedThroughSequence == receipt.clearedThroughSequence
+    }
+
+    private func clearReceiptIsCoveredBySnapshot(
+        _ receipt: CaptureClearReceipt,
+        snapshot: CaptureControlSnapshot
+    ) -> Bool {
+        guard let lastClearReceipt = snapshot.lastClearReceipt,
+              snapshot.revision >= receipt.controlRevision,
+              snapshot.deletionRevision >= receipt.deletionRevision,
+              snapshot.clearedThroughSequence >= receipt.clearedThroughSequence else {
+            return false
+        }
+        return lastClearReceipt.operationID != receipt.operationID || lastClearReceipt == receipt
     }
 
     private func validBatchReceipt(_ receipt: CaptureBatchReceipt, request: AppendRequest) -> Bool {
