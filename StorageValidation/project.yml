@@ -22,11 +22,15 @@ targets:
       - path: ../Keepsake/Location/RecorderLifecycleSupport.swift
       - path: ../Keepsake/Location/LocalCaptureCoordinator.swift
       - path: ../Keepsake/Location/LocalCaptureLifecycle.swift
+      - path: ../Keepsake/Location/LocalCaptureConsumerModel.swift
+      - path: ../Keepsake/Location/LocalCaptureWriteAdmission.swift
       - path: ../Keepsake/Location/LocationAuthorizationObserver.swift
       - path: ../Keepsake/Storage/RouteRepository.swift
       - path: ../Keepsake/Storage/LocalCapturePersistence.swift
+      - path: ../Keepsake/Storage/LocalCaptureHistoryReading.swift
       - path: ../Keepsake/Storage/RouteStore.swift
       - path: ../Keepsake/Storage/RouteStoreFiles.swift
+      - path: ../Keepsake/App/LocalCaptureExperiment.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_BUNDLE_IDENTIFIER)"
@@ -50,6 +54,10 @@ targets:
       - path: ../KeepsakeTests/LocalCaptureCoordinatorTests.swift
       - path: ../KeepsakeTests/LocalCaptureLifecycleTests.swift
       - path: ../KeepsakeTests/CaptureHistoryTests.swift
+      - path: ../KeepsakeTests/RouteHistoryTests.swift
+      - path: ../KeepsakeTests/LocalCaptureConsumerTests.swift
+      - path: ../KeepsakeTests/LocalCaptureWriteAdmissionTests.swift
+      - path: ../KeepsakeTests/LocalCaptureExperimentTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:
