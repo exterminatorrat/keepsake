@@ -30,6 +30,8 @@ actor RouteRepository {
     private var trustedLocalApplicationSupportURL: URL?
     private let retentionInterval: TimeInterval
     private let protectAndVerify: @Sendable (URL, RouteStoreProtectedItem) throws -> Void
+    private let synchronizeDirectory: @Sendable (URL) throws -> Void
+    private var directorySynchronizationPending = false
     private var directoryURL: URL {
         fileURL.deletingLastPathComponent()
     }
@@ -41,13 +43,17 @@ actor RouteRepository {
     init(
         fileURL: URL,
         retentionDays: Int = 90,
-        protectAndVerify: (@Sendable (URL, RouteStoreProtectedItem) throws -> Void)? = nil
+        protectAndVerify: (@Sendable (URL, RouteStoreProtectedItem) throws -> Void)? = nil,
+        synchronizeDirectory: (@Sendable (URL) throws -> Void)? = nil
     ) {
         self.fileURL = fileURL
         trustedLocalApplicationSupportURL = nil
         retentionInterval = TimeInterval(max(1, retentionDays)) * 24 * 60 * 60
         self.protectAndVerify = protectAndVerify ?? { url, item in
             try Self.protectArchiveItem(url, as: item)
+        }
+        self.synchronizeDirectory = synchronizeDirectory ?? { url in
+            try RouteStoreFiles.synchronizeDirectory(url)
         }
     }
 
@@ -57,6 +63,9 @@ actor RouteRepository {
             .appendingPathComponent("route-history.jsonl")
         trustedLocalApplicationSupportURL = localApplicationSupportURL
         retentionInterval = TimeInterval(Self.retentionDays) * 24 * 60 * 60
+        synchronizeDirectory = { url in
+            try RouteStoreFiles.synchronizeDirectory(url)
+        }
         protectAndVerify = { url, item in
             try Self.protectArchiveItem(url, as: item)
         }
@@ -69,6 +78,14 @@ actor RouteRepository {
 
     func load(now: Date = .now) throws -> RouteLoadResult {
         try resolveTrustedLocalApplicationSupportURL()
+        if directorySynchronizationPending {
+            do {
+                try synchronizeArchiveDirectory()
+            } catch {
+                didLoad = false
+                throw RouteStorageError.writeOutcomeUncertain
+            }
+        }
         var recoveredIncompleteTail = false
 
         if !didLoad {
@@ -128,13 +145,7 @@ actor RouteRepository {
 
     func clear() throws {
         try resolveTrustedLocalApplicationSupportURL()
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            do {
-                try FileManager.default.removeItem(at: fileURL)
-            } catch {
-                throw RouteStorageError.writeFailed
-            }
-        }
+        try removeArchiveDurably()
 
         samples.removeAll()
         sampleIDs.removeAll()
@@ -144,6 +155,9 @@ actor RouteRepository {
 
     private func readArchive() throws -> Bool {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            samples.removeAll()
+            sampleIDs.removeAll()
+            fingerprints.removeAll()
             return false
         }
 
@@ -249,13 +263,7 @@ actor RouteRepository {
 
     private func rewriteArchive(_ samples: [RouteSample]) throws {
         if samples.isEmpty {
-            if FileManager.default.fileExists(atPath: fileURL.path) {
-                do {
-                    try FileManager.default.removeItem(at: fileURL)
-                } catch {
-                    throw RouteStorageError.writeFailed
-                }
-            }
+            try removeArchiveDurably()
             return
         }
 
@@ -286,7 +294,7 @@ actor RouteRepository {
             do {
                 try protect(fileURL, as: .file)
                 try RouteStoreFiles.synchronizeFile(fileURL)
-                try RouteStoreFiles.synchronizeDirectory(directoryURL)
+                try synchronizeArchiveDirectory()
             } catch {
                 throw RouteStorageError.writeOutcomeUncertain
             }
@@ -303,6 +311,33 @@ actor RouteRepository {
         }
 
         try protect(directoryURL, as: .directory)
+    }
+
+    private func removeArchiveDurably() throws {
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+            } catch {
+                throw RouteStorageError.writeFailed
+            }
+            directorySynchronizationPending = true
+        }
+
+        guard directorySynchronizationPending else {
+            return
+        }
+
+        do {
+            try synchronizeArchiveDirectory()
+        } catch {
+            didLoad = false
+            throw RouteStorageError.writeOutcomeUncertain
+        }
+    }
+
+    private func synchronizeArchiveDirectory() throws {
+        try synchronizeDirectory(directoryURL)
+        directorySynchronizationPending = false
     }
 
     private func resolveTrustedLocalApplicationSupportURL() throws {

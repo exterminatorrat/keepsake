@@ -562,7 +562,7 @@ final class LocalCaptureCoordinator {
             state = .active(epoch: receipt.epoch, generation: request.generation, controlRevision: snapshot.revision)
             resume(&request.waiters, returning: receipt.epoch)
         } catch {
-            if isDefinitelyNotCommitted(error) {
+            if returnedReceipt == nil, isDefinitelyNotCommitted(error) {
                 if isStaleFence(error) {
                     await refreshAfterStaleFence()
                     pendingBegin = nil
@@ -628,7 +628,7 @@ final class LocalCaptureCoordinator {
             release(request)
             resume(&request.waiters, returning: receipt)
         } catch {
-            if isDefinitelyNotCommitted(error) {
+            if returnedReceipt == nil, isDefinitelyNotCommitted(error) {
                 release(request)
                 if isStaleFence(error) {
                     await refreshAfterStaleFence()
@@ -701,7 +701,7 @@ final class LocalCaptureCoordinator {
             admissionOpen = false
             resume(&request.waiters, returning: .stopped(receipt))
         } catch {
-            if isDefinitelyNotCommitted(error) {
+            if returnedReceipt == nil, isDefinitelyNotCommitted(error) {
                 request.status = .failed
                 request.retryAllowed = true
                 state = .stopUnconfirmed(operationID: request.operationID, epoch: request.epoch)
