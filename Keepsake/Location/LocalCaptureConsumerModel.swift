@@ -51,7 +51,7 @@ final class LocalCaptureConsumerModel {
     init(
         lifecycle: LocalCaptureLifecycle,
         historyReader: any LocalCaptureHistoryReading,
-        historyPageLimit: Int = Self.defaultHistoryPageLimit
+        historyPageLimit: Int = LocalCaptureConsumerModel.defaultHistoryPageLimit
     ) {
         self.lifecycle = lifecycle
         self.historyReader = historyReader
