@@ -25,11 +25,24 @@ final class LocalCaptureLifecycle {
     fileprivate nonisolated let coordinator: LocalCaptureCoordinator
     private let authorization: any RecorderAuthorizationObservation
 
-    private(set) var lastError: String?
-    private(set) var lastInterruption: LocalCaptureLifecycleInterruption?
+    private(set) var lastError: String? {
+        didSet {
+            notifyChange()
+        }
+    }
+    private(set) var lastInterruption: LocalCaptureLifecycleInterruption? {
+        didSet {
+            notifyChange()
+        }
+    }
+    var onChange: (@MainActor () -> Void)?
 
     var state: LocalCaptureCoordinatorState {
         coordinator.state
+    }
+
+    var controlSnapshot: CaptureControlSnapshot? {
+        coordinator.controlSnapshot
     }
 
     var isStorageReady: Bool {
@@ -55,6 +68,7 @@ final class LocalCaptureLifecycle {
         authorization: any RecorderAuthorizationObservation,
         runtimePlatform: any RecorderRuntimePlatform,
         now: @escaping @Sendable () -> Date,
+        writeAdmissionMode: LocalCaptureWriteAdmissionMode,
         isLocationServicesEnabled: @escaping @MainActor () async -> Bool
     ) {
         self.authorization = authorization
@@ -63,6 +77,7 @@ final class LocalCaptureLifecycle {
             authorization: authorization,
             runtimePlatform: runtimePlatform,
             now: now,
+            writeAdmissionMode: writeAdmissionMode,
             isLocationServicesEnabled: isLocationServicesEnabled
         )
         coordinator = LocalCaptureCoordinator(
@@ -70,6 +85,9 @@ final class LocalCaptureLifecycle {
             runtime: runtime,
             reopenVerifiedStore: reopenVerifiedStore
         )
+        coordinator.onStateChange = { [weak self] in
+            self?.notifyChange()
+        }
         runtime.attach(self)
 
         authorization.onChange = { [weak self] in
@@ -93,6 +111,7 @@ final class LocalCaptureLifecycle {
         authorization: any RecorderAuthorizationObservation,
         runtimePlatform: any RecorderRuntimePlatform,
         now: @escaping @Sendable () -> Date = { .now },
+        writeAdmissionMode: LocalCaptureWriteAdmissionMode = .allUpdates,
         isLocationServicesEnabled: @escaping @MainActor () async -> Bool = {
             await SystemLocationServicesStatusSource().servicesEnabled()
         }
@@ -104,6 +123,7 @@ final class LocalCaptureLifecycle {
             authorization: authorization,
             runtimePlatform: runtimePlatform,
             now: now,
+            writeAdmissionMode: writeAdmissionMode,
             isLocationServicesEnabled: isLocationServicesEnabled
         )
         _ = try await lifecycle.coordinator.refreshControl()
@@ -145,6 +165,18 @@ final class LocalCaptureLifecycle {
     func reconcileUncertain() async throws -> LocalCaptureReconciliationResult {
         try await perform {
             try await self.coordinator.reconcileUncertain()
+        }
+    }
+
+    func clearHistory(
+        expectedControlRevision: Int64,
+        operationID: UUID
+    ) async throws -> CaptureClearReceipt {
+        try await perform {
+            try await self.coordinator.clearHistory(
+                expectedControlRevision: expectedControlRevision,
+                operationID: operationID
+            )
         }
     }
 
@@ -211,6 +243,10 @@ final class LocalCaptureLifecycle {
             throw error
         }
     }
+
+    private func notifyChange() {
+        onChange?()
+    }
 }
 
 @MainActor
@@ -219,6 +255,7 @@ private final class LocalCaptureLifecycleRuntime: LocalCaptureRuntimeControl {
     private let authorization: any RecorderAuthorizationObservation
     private let runtimePlatform: any RecorderRuntimePlatform
     private let now: @Sendable () -> Date
+    private let writeAdmissionMode: LocalCaptureWriteAdmissionMode
     private let isLocationServicesEnabled: @MainActor () async -> Bool
     private weak var lifecycle: LocalCaptureLifecycle?
 
@@ -227,12 +264,14 @@ private final class LocalCaptureLifecycleRuntime: LocalCaptureRuntimeControl {
         authorization: any RecorderAuthorizationObservation,
         runtimePlatform: any RecorderRuntimePlatform,
         now: @escaping @Sendable () -> Date,
+        writeAdmissionMode: LocalCaptureWriteAdmissionMode,
         isLocationServicesEnabled: @escaping @MainActor () async -> Bool
     ) {
         self.locationUpdateSource = locationUpdateSource
         self.authorization = authorization
         self.runtimePlatform = runtimePlatform
         self.now = now
+        self.writeAdmissionMode = writeAdmissionMode
         self.isLocationServicesEnabled = isLocationServicesEnabled
     }
 
@@ -253,6 +292,7 @@ private final class LocalCaptureLifecycleRuntime: LocalCaptureRuntimeControl {
             runtimePlatform: runtimePlatform,
             isLocationServicesEnabled: isLocationServicesEnabled,
             now: now,
+            writeAdmissionMode: writeAdmissionMode,
             onTermination: { [weak lifecycle] interruption in
                 guard let lifecycle else {
                     return
@@ -277,6 +317,7 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
     private let isLocationServicesEnabled: @MainActor () async -> Bool
     private var resources: LocalCaptureRuntimeResources?
     private let now: @Sendable () -> Date
+    private var writeAdmission: LocalCaptureWriteAdmission
     private let onTermination: @MainActor (LocalCaptureLifecycleInterruption) -> Void
     private var isAcceptingUpdates = true
 
@@ -288,6 +329,7 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
         runtimePlatform: any RecorderRuntimePlatform,
         isLocationServicesEnabled: @escaping @MainActor () async -> Bool,
         now: @escaping @Sendable () -> Date,
+        writeAdmissionMode: LocalCaptureWriteAdmissionMode,
         onTermination: @escaping @MainActor (LocalCaptureLifecycleInterruption) -> Void
     ) {
         self.epoch = epoch
@@ -297,6 +339,7 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
         self.runtimePlatform = runtimePlatform
         self.isLocationServicesEnabled = isLocationServicesEnabled
         self.now = now
+        writeAdmission = LocalCaptureWriteAdmission(mode: writeAdmissionMode)
         self.onTermination = onTermination
     }
 
@@ -345,6 +388,9 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
                             recordingID: self.epoch.recordingID,
                             isStationary: update.stationary
                         )
+                        guard self.writeAdmission.shouldAdmit(sample) else {
+                            return true
+                        }
                         let input = try CaptureBatchInput(samples: [sample])
                         guard let coordinator = self.coordinator else {
                             return false

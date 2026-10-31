@@ -234,10 +234,17 @@ final class LocalCaptureCoordinator {
     private var runtimeGeneration = UUID()
     private var admissionOpen = false
 
-    private(set) var state: LocalCaptureCoordinatorState = .unready
+    private(set) var state: LocalCaptureCoordinatorState = .unready {
+        didSet {
+            if oldValue != state {
+                onStateChange?()
+            }
+        }
+    }
     private(set) var controlSnapshot: CaptureControlSnapshot?
     private(set) var pendingSampleCount = 0
     private(set) var pendingEncodedPayloadBytes = 0
+    var onStateChange: (@MainActor () -> Void)?
 
     var isStorageReady: Bool {
         controlSnapshot != nil && uncertainty == nil
