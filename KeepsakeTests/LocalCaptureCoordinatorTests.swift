@@ -440,6 +440,167 @@ struct LocalCaptureCoordinatorTests {
         #expect(resumedEpoch.revision > originalEpoch.revision)
         #expect(resumedRuntime.startedEpochs == [resumedEpoch])
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func committedBeginWithFailedVerificationKeepsStopUncertainUntilReconciliation() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        _ = try await coordinator.refreshControl()
+        await store.gateNextBegin()
+        await store.failNextControlReadAfterMutation(.begin)
+
+        let recordingID = UUID()
+        let begin = Task { try await coordinator.startRecording(recordingID: recordingID) }
+        await store.waitForBeginCall()
+        let (stopStarted, stopStartSignal) = AsyncStream<Void>.makeStream()
+        let stop = Task {
+            stopStartSignal.yield(())
+            return try await coordinator.stopRecording()
+        }
+        var stopStartedIterator = stopStarted.makeAsyncIterator()
+        _ = await stopStartedIterator.next()
+        await store.releaseBegin()
+
+        let beginError = await capturedError { try await begin.value }
+        guard let operationID = coordinatorOperationID(from: beginError) else {
+            Issue.record("Committed Begin did not remain unresolved after verification failed")
+            return
+        }
+        #expect(beginError as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .begin,
+            reason: .receiptMismatch
+        ))
+        #expect(runtime.startedEpochs.isEmpty)
+        #expect(!coordinator.isAcceptingSamples)
+
+        let stopCallsBeforeReconciliation = await store.stopCallCount()
+        #expect(stopCallsBeforeReconciliation == 0)
+
+        let result = try await coordinator.reconcileUncertain()
+        guard case .beginCommitted(let receipt) = result else {
+            Issue.record("Reconciliation did not verify the committed Begin receipt")
+            return
+        }
+        #expect(receipt.operationID == operationID)
+        #expect(runtime.startedEpochs.isEmpty)
+        let stopResult = try await stop.value
+        guard case .stopped(let stopReceipt) = stopResult else {
+            Issue.record("Queued Stop did not preserve the newest intent after reconciliation")
+            return
+        }
+        #expect(stopReceipt.kind == .stop)
+        #expect(stopReceipt.epoch == receipt.epoch)
+        #expect(coordinator.state == .stopped(controlRevision: stopReceipt.controlRevision))
+        #expect(runtime.startedEpochs.isEmpty)
+        let stopCallsAfterReconciliation = await store.stopCallCount()
+        #expect(stopCallsAfterReconciliation == 1)
+        let events = await store.eventLog()
+        #expect(events == ["begin.started", "begin.committed", "stop.started", "stop.committed"])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func appendVerificationFailureClosesRuntimeAndReconcilesItsRetainedReceipt() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        let recordingID = try #require(coordinator.controlSnapshot?.activeEpoch?.recordingID)
+        let input = try makeInput(recordingID: recordingID, count: 2, startingAt: 1)
+        let operationID = UUID()
+        await store.failNextControlReadAfterMutation(.append)
+        await store.setReceiptLookupUnavailable(true)
+
+        let error = await capturedError {
+            try await coordinator.append(
+                input,
+                now: Date(timeIntervalSinceReferenceDate: 100),
+                operationID: operationID
+            )
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .append,
+            reason: .receiptMismatch
+        ))
+        #expect(!coordinator.isAcceptingSamples)
+        #expect(runtime.startedEpochs.count == 1)
+        #expect(runtime.stopCallCount == 1)
+        #expect(coordinator.pendingSampleCount == input.samples.count)
+
+        await expectError(LocalCaptureCoordinatorError.unresolvedOperation(operationID)) {
+            try await coordinator.append(
+                input,
+                now: Date(timeIntervalSinceReferenceDate: 101),
+                operationID: operationID
+            )
+        }
+        let appendCallsBeforeReconciliation = await store.appendCallCount()
+        #expect(appendCallsBeforeReconciliation == 1)
+
+        let result = try await coordinator.reconcileUncertain()
+        guard case .appendCommitted(let receipt) = result else {
+            Issue.record("Reconciliation did not use the retained Append receipt")
+            return
+        }
+        #expect(receipt.operationID == operationID)
+        let controlRevision = try #require(coordinator.controlSnapshot?.revision)
+        #expect(coordinator.state == .resumeRequired(
+            epoch: receipt.epoch,
+            controlRevision: controlRevision
+        ))
+        #expect(!coordinator.isAcceptingSamples)
+        #expect(coordinator.pendingSampleCount == 0)
+        #expect(runtime.startedEpochs.count == 1)
+        #expect(runtime.stopCallCount == 1)
+        let appendCallsAfterReconciliation = await store.appendCallCount()
+        #expect(appendCallsAfterReconciliation == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func stopVerificationFailureRemainsUncertainWithoutAutomaticRetry() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        await store.failNextControlReadAfterMutation(.stop)
+
+        let error = await capturedError { try await coordinator.stopRecording() }
+        guard let operationID = coordinatorOperationID(from: error) else {
+            Issue.record("Committed Stop did not remain unresolved after verification failed")
+            return
+        }
+        #expect(error as? LocalCaptureCoordinatorError == .unresolvedOperation(operationID))
+        #expect(coordinator.state == .uncertain(
+            operationID: operationID,
+            kind: .stop,
+            reason: .receiptMismatch
+        ))
+        #expect(!coordinator.isAcceptingSamples)
+        #expect(runtime.startedEpochs.count == 1)
+        #expect(runtime.stopCallCount == 1)
+        let stopCallsBeforeReconciliation = await store.stopCallCount()
+        #expect(stopCallsBeforeReconciliation == 1)
+
+        let result = try await coordinator.reconcileUncertain()
+        guard case .stopCommitted(let receipt) = result else {
+            Issue.record("Reconciliation did not verify the committed Stop receipt")
+            return
+        }
+        #expect(receipt.operationID == operationID)
+        #expect(coordinator.state == .stopped(controlRevision: receipt.controlRevision))
+        #expect(runtime.startedEpochs.count == 1)
+        #expect(runtime.stopCallCount == 1)
+        let stopCallsAfterReconciliation = await store.stopCallCount()
+        #expect(stopCallsAfterReconciliation == 1)
+    }
+}
+
+private enum CoordinatorMutation: Equatable, Sendable {
+    case begin
+    case append
+    case stop
 }
 
 private enum FakeStopBehavior: Equatable {
@@ -466,13 +627,19 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
     private var beginUncertainAfterCommit = false
     private var appendUncertainAfterCommit = false
     private var nextStopBehavior = FakeStopBehavior.success
+    private var readControlFailureAfterMutation: CoordinatorMutation?
+    private var nextReadControlFailure: CapturePersistenceError?
     private var beginBarrier: CheckedContinuation<Void, Never>?
     private var appendBarrier: CheckedContinuation<Void, Never>?
     private var beginCallWaiters: [CheckedContinuation<Void, Never>] = []
     private var appendCallWaiters: [CheckedContinuation<Void, Never>] = []
 
     func readControl() async throws -> CaptureControlSnapshot {
-        control
+        if let nextReadControlFailure {
+            self.nextReadControlFailure = nil
+            throw nextReadControlFailure
+        }
+        return control
     }
 
     func beginRecording(
@@ -524,6 +691,7 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
             beginUncertainAfterCommit = false
             throw CapturePersistenceError.outcomeUncertain(operationID)
         }
+        scheduleReadControlFailure(after: .begin)
         return receipt
     }
 
@@ -577,6 +745,7 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
             appendUncertainAfterCommit = false
             throw CapturePersistenceError.outcomeUncertain(operationID)
         }
+        scheduleReadControlFailure(after: .append)
         return receipt
     }
 
@@ -629,6 +798,7 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
         if behavior == .uncertainAfterCommit {
             throw CapturePersistenceError.outcomeUncertain(operationID)
         }
+        scheduleReadControlFailure(after: .stop)
         return receipt
     }
 
@@ -662,6 +832,9 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
     func setReceiptLookupUnavailable(_ unavailable: Bool) { lookupUnavailable = unavailable }
     func setNextStopBehavior(_ behavior: FakeStopBehavior) { nextStopBehavior = behavior }
     func setNextAppendUncertainAfterCommit() { appendUncertainAfterCommit = true }
+    fileprivate func failNextControlReadAfterMutation(_ mutation: CoordinatorMutation) {
+        readControlFailureAfterMutation = mutation
+    }
     func recordReopen() { reopens += 1 }
     func clearEventLog() { events = [] }
 
@@ -731,6 +904,14 @@ private actor CoordinatorPersistenceFake: LocalCapturePersistence {
         for waiter in waiting {
             waiter.resume()
         }
+    }
+
+    private func scheduleReadControlFailure(after mutation: CoordinatorMutation) {
+        guard readControlFailureAfterMutation == mutation else {
+            return
+        }
+        readControlFailureAfterMutation = nil
+        nextReadControlFailure = .invalidControlState
     }
 }
 
