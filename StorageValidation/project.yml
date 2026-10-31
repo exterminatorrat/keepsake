@@ -21,6 +21,7 @@ targets:
       - path: ../Keepsake/Location/RecorderModel.swift
       - path: ../Keepsake/Location/RecorderLifecycleSupport.swift
       - path: ../Keepsake/Location/LocalCaptureCoordinator.swift
+      - path: ../Keepsake/Location/LocalCaptureLifecycle.swift
       - path: ../Keepsake/Location/LocationAuthorizationObserver.swift
       - path: ../Keepsake/Storage/RouteRepository.swift
       - path: ../Keepsake/Storage/LocalCapturePersistence.swift
@@ -47,6 +48,7 @@ targets:
       - path: ../KeepsakeTests/LocalCapturePersistenceTests.swift
       - path: ../KeepsakeTests/CapturePersistenceTests.swift
       - path: ../KeepsakeTests/LocalCaptureCoordinatorTests.swift
+      - path: ../KeepsakeTests/LocalCaptureLifecycleTests.swift
       - path: ../KeepsakeTests/CaptureHistoryTests.swift
     dependencies:
       - target: KeepsakeStorageValidation

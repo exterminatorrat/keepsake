@@ -13,7 +13,7 @@ protocol LocationServicesStatusSource: Sendable {
     func servicesEnabled() async -> Bool
 }
 
-private struct SystemLocationServicesStatusSource: LocationServicesStatusSource {
+struct SystemLocationServicesStatusSource: LocationServicesStatusSource {
     func servicesEnabled() async -> Bool {
         await Task.detached {
             CLLocationManager.locationServicesEnabled()
