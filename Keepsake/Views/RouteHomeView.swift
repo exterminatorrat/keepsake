@@ -256,22 +256,17 @@ struct RouteHomeView: View {
     }
 
     private func centerMap() {
-        let coordinates = route.segments.flatMap(\.samples).map(coordinate(for:))
-        guard !coordinates.isEmpty else {
+        guard let viewport = RouteHistory.viewport(for: route.segments.flatMap(\.samples)) else {
             cameraPosition = .automatic
             return
         }
 
-        let latitudes = coordinates.map(\.latitude)
-        let longitudes = coordinates.map(\.longitude)
-        let latitudeDelta = max(0.01, (latitudes.max()! - latitudes.min()!) * 1.5)
-        let longitudeDelta = max(0.01, (longitudes.max()! - longitudes.min()!) * 1.5)
         let region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(
-                latitude: (latitudes.min()! + latitudes.max()!) / 2,
-                longitude: (longitudes.min()! + longitudes.max()!) / 2
+                latitude: viewport.centerLatitude,
+                longitude: viewport.centerLongitude
             ),
-            span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
+            span: MKCoordinateSpan(latitudeDelta: viewport.latitudeSpan, longitudeDelta: viewport.longitudeSpan)
         )
         cameraPosition = .region(region)
     }

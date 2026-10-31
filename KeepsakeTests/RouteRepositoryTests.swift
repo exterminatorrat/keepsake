@@ -231,6 +231,73 @@ struct RouteRepositoryTests {
         #expect(reopened.samples.map(\.id) == [sample.id])
     }
 
+    @Test func clearDirectorySyncFailureIsUncertainAndReloadsAfterBarrierRetry() async throws {
+        let fixture = try makeRepositoryFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let syncAttempts = Mutex(0)
+        let synchronizeDirectory: @Sendable (URL) throws -> Void = { url in
+            let attempt = syncAttempts.withLock { count in
+                count += 1
+                return count
+            }
+            if attempt == 1 {
+                throw RouteStoreError.writeFailed
+            }
+            try RouteStoreFiles.synchronizeDirectory(url)
+        }
+        let repository = makeTestRepository(
+            fileURL: fixture.fileURL,
+            synchronizeDirectory: synchronizeDirectory
+        )
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let sample = makeSample(sessionID: UUID(), seconds: 900_000)
+
+        #expect(try await repository.append(sample, now: now) == .stored)
+        await expectRouteStorageError(.writeOutcomeUncertain) {
+            try await repository.clear()
+        }
+        #expect(!FileManager.default.fileExists(atPath: fixture.fileURL.path))
+
+        let reloaded = try await repository.load(now: now)
+
+        #expect(reloaded.samples.isEmpty)
+        #expect(syncAttempts.withLock { $0 } == 2)
+    }
+
+    @Test func expiredArchiveDirectorySyncFailureIsUncertainAndReloadsEmpty() async throws {
+        let fixture = try makeRepositoryFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let syncAttempts = Mutex(0)
+        let synchronizeDirectory: @Sendable (URL) throws -> Void = { url in
+            let attempt = syncAttempts.withLock { count in
+                count += 1
+                return count
+            }
+            if attempt == 1 {
+                throw RouteStoreError.writeFailed
+            }
+            try RouteStoreFiles.synchronizeDirectory(url)
+        }
+        let repository = makeTestRepository(
+            fileURL: fixture.fileURL,
+            synchronizeDirectory: synchronizeDirectory
+        )
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let sample = makeSample(sessionID: UUID(), seconds: now.timeIntervalSince1970 - 89 * 86_400)
+        let afterRetention = now.addingTimeInterval(2 * 86_400)
+
+        #expect(try await repository.append(sample, now: now) == .stored)
+        await expectRouteStorageError(.writeOutcomeUncertain) {
+            _ = try await repository.load(now: afterRetention)
+        }
+        #expect(!FileManager.default.fileExists(atPath: fixture.fileURL.path))
+
+        let reloaded = try await repository.load(now: afterRetention)
+
+        #expect(reloaded.samples.isEmpty)
+        #expect(syncAttempts.withLock { $0 } == 2)
+    }
+
     @Test func recoveryDropsOnlyAnIncompleteFinalRecord() async throws {
         let fixture = try makeRepositoryFixture()
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
@@ -279,8 +346,15 @@ private func makeRepositoryFixture() throws -> (directory: URL, fileURL: URL) {
     return (directory, directory.appendingPathComponent("history.jsonl"))
 }
 
-private func makeTestRepository(fileURL: URL) -> RouteRepository {
-    RouteRepository(fileURL: fileURL, protectAndVerify: protectForRepositoryTest)
+private func makeTestRepository(
+    fileURL: URL,
+    synchronizeDirectory: (@Sendable (URL) throws -> Void)? = nil
+) -> RouteRepository {
+    RouteRepository(
+        fileURL: fileURL,
+        protectAndVerify: protectForRepositoryTest,
+        synchronizeDirectory: synchronizeDirectory
+    )
 }
 
 private func protectForRepositoryTest(_ url: URL, as item: RouteStoreProtectedItem) throws {

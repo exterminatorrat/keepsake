@@ -80,19 +80,73 @@ struct RouteHistoryTests {
 
         #expect(RouteHistory.retainedSamples([expired, boundary, recent], after: cutoff) == [boundary, recent])
     }
+
+    @Test func routeViewportReturnsNilForEmptyHistory() {
+        #expect(RouteHistory.viewport(for: []) == nil)
+    }
+
+    @Test func routeViewportKeepsSinglePointCenteredAtValidCoordinates() throws {
+        let viewport = try #require(RouteHistory.viewport(for: [
+            makeSample(seconds: 0, latitude: 90, longitude: 180)
+        ]))
+
+        #expect(viewport.centerLatitude == 90)
+        #expect(viewport.centerLongitude == -180)
+        #expect(viewport.latitudeSpan == 0.01)
+        #expect(viewport.longitudeSpan == 0.01)
+    }
+
+    @Test func routeViewportPadsOrdinaryBounds() throws {
+        let viewport = try #require(RouteHistory.viewport(for: [
+            makeSample(seconds: 0, latitude: 10, longitude: -122),
+            makeSample(seconds: 60, latitude: 14, longitude: -120)
+        ]))
+
+        #expect(viewport.centerLatitude == 12)
+        #expect(viewport.centerLongitude == -121)
+        #expect(viewport.latitudeSpan == 6)
+        #expect(viewport.longitudeSpan == 3)
+    }
+
+    @Test func routeViewportUsesTheShortArcAcrossTheAntimeridian() throws {
+        let viewport = try #require(RouteHistory.viewport(for: [
+            makeSample(seconds: 0, latitude: 10, longitude: 179.9),
+            makeSample(seconds: 60, latitude: 20, longitude: -179.9)
+        ]))
+
+        #expect(viewport.centerLatitude == 15)
+        #expect(abs(abs(viewport.centerLongitude) - 180) < 0.000_001)
+        #expect(viewport.latitudeSpan == 15)
+        #expect(abs(viewport.longitudeSpan - 0.3) < 0.000_001)
+    }
+
+    @Test func routeViewportBoundsGlobalSpansAndCenter() throws {
+        let viewport = try #require(RouteHistory.viewport(for: [
+            makeSample(seconds: 0, latitude: -90, longitude: 0),
+            makeSample(seconds: 60, latitude: 90, longitude: 120),
+            makeSample(seconds: 120, latitude: 0, longitude: -120)
+        ]))
+
+        #expect((-90...90).contains(viewport.centerLatitude))
+        #expect((-180..<180).contains(viewport.centerLongitude))
+        #expect(viewport.latitudeSpan == 180)
+        #expect(viewport.longitudeSpan == 360)
+    }
 }
 
 private func makeSample(
     sessionID: UUID = UUID(),
     seconds: TimeInterval,
+    latitude: Double? = nil,
+    longitude: Double = -122.0090,
     accuracy: Double = 8,
     stationary: Bool = false
 ) -> RouteSample {
     RouteSample(
         recordingID: sessionID,
         observedAt: Date(timeIntervalSince1970: seconds),
-        latitude: 37.3349 + seconds / 1_000_000,
-        longitude: -122.0090,
+        latitude: latitude ?? 37.3349 + seconds / 1_000_000,
+        longitude: longitude,
         horizontalAccuracy: accuracy,
         speed: stationary ? 0 : 1.2,
         course: 90,
