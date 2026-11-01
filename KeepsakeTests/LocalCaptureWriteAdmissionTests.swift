@@ -176,16 +176,108 @@ struct LocalCaptureWriteAdmissionTests {
         let rejectedAfterInvalidCoordinate = admission.shouldAdmit(
             sample(recordingID: recordingID, second: 12))
         #expect(!rejectedAfterInvalidCoordinate)
-        let admittedOutOfOrderMovement = admission.shouldAdmit(sample(
+        let admittedDelayedMovement = admission.shouldAdmit(sample(
             recordingID: recordingID,
             second: 11.5,
             latitude: latitude(northMeters: 100),
             stationary: false
         ))
-        #expect(admittedOutOfOrderMovement)
-        let rejectedAfterOutOfOrderSample = admission.shouldAdmit(
+        #expect(admittedDelayedMovement)
+        let admittedOlderSample = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 9))
+        #expect(admittedOlderSample)
+        let admittedEqualTimestamp = admission.shouldAdmit(
+            sample(recordingID: recordingID, second: 11.5))
+        #expect(admittedEqualTimestamp)
+        let admittedReturnSample = admission.shouldAdmit(
             sample(recordingID: recordingID, second: 13))
-        #expect(!rejectedAfterOutOfOrderSample)
+        #expect(admittedReturnSample)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func delayedMovementAndReturnPersistAcrossSuppressedAndRejectedObservations() async throws {
+        let parent = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+            .appendingPathComponent("WriteAdmission-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: parent,
+            withIntermediateDirectories: false,
+            attributes: [.posixPermissions: 0o700]
+        )
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let store = try RouteStore.createFoundation(
+            at: parent.appendingPathComponent("store", isDirectory: true),
+            seams: RouteStoreSeams(protectAndVerify: { url, item in
+                #if targetEnvironment(simulator)
+                try RouteStoreFiles.protectAndVerify(url, as: item, readProtection: { _ in
+                    .completeUntilFirstUserAuthentication
+                })
+                #else
+                try RouteStoreFiles.protectAndVerify(url, as: item)
+                #endif
+            })
+        )
+
+        do {
+            let recordingID = UUID()
+            let now = Date(timeIntervalSinceReferenceDate: 100)
+            let begin = try await store.beginRecording(
+                recordingID: recordingID,
+                expectedControlRevision: 0,
+                operationID: UUID()
+            )
+            let observations = [
+                sample(recordingID: recordingID, second: 10),
+                sample(recordingID: recordingID, second: 12),
+                sample(recordingID: recordingID, second: 11.5, latitude: latitude(northMeters: 100), stationary: false),
+                sample(recordingID: recordingID, second: 9),
+                sample(recordingID: recordingID, second: 11.5),
+                sample(recordingID: recordingID, second: 13)
+            ]
+            var admission = LocalCaptureWriteAdmission(mode: .boundedMovementStationary)
+            var admissions: [Bool] = []
+            var dispositions: [SampleIngestResult] = []
+
+            for observation in observations {
+                let admitted = admission.shouldAdmit(observation)
+                admissions.append(admitted)
+                if admitted {
+                    let receipt = try await store.appendBatch(
+                        [observation],
+                        epoch: begin.epoch,
+                        operationID: UUID(),
+                        now: now
+                    )
+                    #expect(receipt.epoch == begin.epoch)
+                    #expect(receipt.items.count == 1)
+                    #expect(receipt.items.first?.sampleID == observation.id)
+                    dispositions.append(contentsOf: receipt.items.map(\.disposition))
+                }
+            }
+
+            #expect(admissions == [true, false, true, true, true, true])
+            #expect(dispositions == [.stored, .stored, .outOfOrder, .outOfOrder, .stored])
+            let stop = try await store.stopRecording(
+                epoch: begin.epoch,
+                expectedControlRevision: begin.controlRevision,
+                operationID: UUID()
+            )
+            let page = try await store.readPage(
+                interval: CapturePageInterval(start: Date(timeIntervalSinceReferenceDate: 0), end: now),
+                now: now,
+                limit: 128,
+                cursor: nil
+            )
+            #expect(page.items.map(\.sample) == [observations[0], observations[2], observations[5]])
+            #expect(page.items.map(\.sequence) == [1, 2, 3])
+            #expect(page.nextCursor == nil)
+            let control = try await store.readControl()
+            #expect(control.activeEpoch == nil)
+            #expect(control.lastControlReceipt == stop)
+            await store.close()
+        } catch {
+            await store.close()
+            throw error
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -13,7 +13,6 @@ struct LocalCaptureWriteAdmission: Sendable {
 
     private let mode: LocalCaptureWriteAdmissionMode
     private var lastAdmittedSample: RouteSample?
-    private var lastObservedAt: Date?
 
     init(mode: LocalCaptureWriteAdmissionMode = .allUpdates) {
         self.mode = mode
@@ -28,18 +27,15 @@ struct LocalCaptureWriteAdmission: Sendable {
         }
         guard let lastAdmittedSample else {
             self.lastAdmittedSample = sample
-            lastObservedAt = sample.observedAt
             return true
         }
         guard sample.recordingID == lastAdmittedSample.recordingID else {
             self.lastAdmittedSample = sample
-            lastObservedAt = sample.observedAt
             return true
         }
-        guard let lastObservedAt, sample.observedAt > lastObservedAt else {
+        guard sample.observedAt > lastAdmittedSample.observedAt else {
             return true
         }
-        self.lastObservedAt = sample.observedAt
 
         let elapsed = sample.observedAt.timeIntervalSince(lastAdmittedSample.observedAt)
         guard elapsed.isFinite else {
