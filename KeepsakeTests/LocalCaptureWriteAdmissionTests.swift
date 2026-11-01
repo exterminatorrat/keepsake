@@ -214,6 +214,12 @@ struct LocalCaptureWriteAdmissionTests {
                 #else
                 try RouteStoreFiles.protectAndVerify(url, as: item)
                 #endif
+            }, readProtection: { url in
+                #if targetEnvironment(simulator)
+                return .completeUntilFirstUserAuthentication
+                #else
+                return try RouteStoreFiles.readProtection(at: url)
+                #endif
             })
         )
 
