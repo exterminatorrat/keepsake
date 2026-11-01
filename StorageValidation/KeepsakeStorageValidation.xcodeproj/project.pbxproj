@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A81000000000000000000001 /* LocalCaptureExperimentHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000001 /* LocalCaptureExperimentHost.swift */; };
+		A81000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */; };
+		A81000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift */; };
 		E4000000000000000000000E /* LocalCaptureLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000E /* LocalCaptureLifecycle.swift */; };
 		E4000000000000000000000F /* LocalCaptureLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000F /* LocalCaptureLifecycleTests.swift */; };
 		E40000000000000000000008 /* LocalCapturePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000008 /* LocalCapturePersistence.swift */; };
@@ -50,6 +53,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A82000000000000000000001 /* LocalCaptureExperimentHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Keepsake/Views/LocalCaptureExperimentHost.swift; sourceTree = SOURCE_ROOT; };
+		A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentSyntheticVisualFixture.swift; sourceTree = SOURCE_ROOT; };
+		A82000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentSyntheticVisualFixtureTests.swift; sourceTree = SOURCE_ROOT; };
 		E3000000000000000000000E /* LocalCaptureLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycle.swift; sourceTree = "<group>"; };
 		E3000000000000000000000F /* LocalCaptureLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycleTests.swift; sourceTree = "<group>"; };
 		E30000000000000000000008 /* LocalCapturePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCapturePersistence.swift; sourceTree = "<group>"; };
@@ -154,6 +160,9 @@
 		E2DA7A57E1BA71F2A1A6D29B = {
 			isa = PBXGroup;
 			children = (
+				A82000000000000000000001 /* LocalCaptureExperimentHost.swift */,
+				A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */,
+				A82000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift */,
 				3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */,
 				F6F1B2EF6E0D6482C6C6F2E6 /* keepsake */,
 				C2B1D0797C89C9AC23599D7E /* Products */,
@@ -285,6 +294,7 @@
 				FD81A8D39F114F97CBCA9B59 /* LocalCaptureWriteAdmission.swift in Sources */,
 				216C96AEE844F046284DFCB7 /* LocalCaptureHistoryReading.swift in Sources */,
 				647FBA065118F090C8548395 /* LocalCaptureExperiment.swift in Sources */,
+				A81000000000000000000001 /* LocalCaptureExperimentHost.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -305,6 +315,8 @@
 				E4CE64460DCC549604DE4D70 /* LocalCaptureWriteAdmissionTests.swift in Sources */,
 				3461E7C9A807714095B1CEA6 /* LocalCaptureExperimentTests.swift in Sources */,
 				29B6A450732F5A2F27CB3BDC /* RouteHistoryTests.swift in Sources */,
+				A81000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift in Sources */,
+				A81000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

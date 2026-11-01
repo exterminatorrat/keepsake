@@ -86,14 +86,32 @@ struct LocalCaptureExperimentHost: View {
 }
 
 @MainActor
-private struct LocalCaptureExperimentView: View {
-    @State private var selectedDay = Calendar.current.startOfDay(for: .now)
+struct LocalCaptureExperimentView: View {
+    @State private var selectedDay: Date
     @State private var confirmClear = false
     @State private var maintenanceMessage: String?
 
     let model: LocalCaptureConsumerModel
     let prune: @MainActor () async throws -> CapturePruneReceipt
     let closeFailedMaintenanceSession: @MainActor () async -> Void
+
+    private let calendar: Calendar?
+    private let now: @MainActor () -> Date
+
+    init(
+        model: LocalCaptureConsumerModel,
+        prune: @escaping @MainActor () async throws -> CapturePruneReceipt,
+        closeFailedMaintenanceSession: @escaping @MainActor () async -> Void,
+        calendar: Calendar? = nil,
+        now: @escaping @MainActor () -> Date = { .now }
+    ) {
+        self.model = model
+        self.prune = prune
+        self.closeFailedMaintenanceSession = closeFailedMaintenanceSession
+        self.calendar = calendar
+        self.now = now
+        _selectedDay = State(initialValue: (calendar ?? .current).startOfDay(for: now()))
+    }
 
     private var isStopped: Bool {
         if case .stopped = model.captureState { return true }
@@ -108,8 +126,8 @@ private struct LocalCaptureExperimentView: View {
     }
 
     private var days: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now)
+        let calendar = self.calendar ?? .current
+        let today = calendar.startOfDay(for: now())
         return (0..<90).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
     }
 
@@ -249,9 +267,13 @@ private struct LocalCaptureExperimentView: View {
         }
     }
 
-    private func selectDay() async {
-        guard canReadHistory, let interval = Calendar.current.dateInterval(of: .day, for: selectedDay) else { return }
-        await model.selectHistoryQuery(interval: CapturePageInterval(start: interval.start, end: interval.end))
+    func selectDay() async {
+        guard canReadHistory,
+              let interval = (calendar ?? .current).dateInterval(of: .day, for: selectedDay) else { return }
+        await model.selectHistoryQuery(
+            interval: CapturePageInterval(start: interval.start, end: interval.end),
+            queryNow: now()
+        )
     }
 
     private func pruneChunk() {

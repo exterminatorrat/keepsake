@@ -31,6 +31,7 @@ targets:
       - path: ../Keepsake/Storage/RouteStore.swift
       - path: ../Keepsake/Storage/RouteStoreFiles.swift
       - path: ../Keepsake/App/LocalCaptureExperiment.swift
+      - path: ../Keepsake/Views/LocalCaptureExperimentHost.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_BUNDLE_IDENTIFIER)"
@@ -58,6 +59,8 @@ targets:
       - path: ../KeepsakeTests/LocalCaptureConsumerTests.swift
       - path: ../KeepsakeTests/LocalCaptureWriteAdmissionTests.swift
       - path: ../KeepsakeTests/LocalCaptureExperimentTests.swift
+      - path: LocalCaptureExperimentSyntheticVisualFixture.swift
+      - path: LocalCaptureExperimentSyntheticVisualFixtureTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:
