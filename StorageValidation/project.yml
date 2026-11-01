@@ -69,6 +69,20 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation
         BUNDLE_LOADER: $(TEST_HOST)
+  StorageValidationRenderEntryTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LocalCaptureExperimentSyntheticVisualFixture.swift
+      - path: LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift
+    dependencies:
+      - target: KeepsakeStorageValidation
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER).render-entry"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation
+        BUNDLE_LOADER: $(TEST_HOST)
 schemes:
   KeepsakeStorageValidation:
     build:
@@ -78,4 +92,13 @@ schemes:
     test:
       targets:
         - StorageValidationTests
+      parallelizable: false
+  KeepsakeStorageValidationRenderEntry:
+    build:
+      targets:
+        KeepsakeStorageValidation: [test]
+        StorageValidationRenderEntryTests: [test]
+    test:
+      targets:
+        - StorageValidationRenderEntryTests
       parallelizable: false
