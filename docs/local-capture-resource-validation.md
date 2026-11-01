@@ -35,6 +35,14 @@ The stationary, walking, and driving fixtures can check preservation of known sy
 
 ## Measurement oracle
 
+### Authored driver and attributable event hooks
+
+The test-only `ResourceWorkloadDriver` accepts exactly one selected stage and repetition per call; it never advances to another stage or repetition automatically. It creates a synthetic foundation store, appends batches of at most 32, verifies Stop through close/reopen and receipt lookup, and reads every expected page to its terminal cursor. Each expected page contains at most 128 samples; no whole-interval expected route is materialized. Exact samples, sequences, epochs, returned encoded payload sizes, cursor high-water/deletion/store-open identity, call counts and persisted Stop/control are checked. Errors close the current store without retry, reconciliation, clear or pruning.
+
+Injected hooks emit operation/stage/batch/page/Stop boundaries with operation ID, stage/repetition, monotonic ticks and bounded row/payload/call counts. `pageStarted`→`pageReturned` spans the awaited page API; `pageCompleted` follows its validation. `stopStarted`→`stopReturned` spans the awaited durable Stop API; `stopCompleted` follows receipt validation, close/reopen, control and receipt-lookup verification. These are not runtime-stop or rendered-UI intervals. A real collector must bind the monotonic clock domain, units/rate and measured process/window; the test clock is only an incrementing fake, not elapsed time. Observers must not retain unbounded event history or perform heavy synchronous work when attributing workload costs.
+
+Two authored one-minute tests select only B0 and invalid-repetition rejection. Both checked-in test targets and the inert manifest register the driver/tests; app source phases and existing fixture sources are unchanged. Swift compilation, execution, cursor/payload outcomes and physical resource metrics remain unverified. Hooks alone collect no CPU, physical memory, volume/file/write, energy or rendered-UI measurements. Existing guard memory/capacity admission readings are safety predicates, not workload measurements; no scale-up or native execution is authorized by these sources.
+
 Record the exact build, device and OS when applicable, test target/process being measured, fixture and row counts, page size, run count, measurement tool/version, and any relevant thermal, charging, brightness, or network conditions. Keep runs serial and record each result before summarizing it. Report median, p95, and maximum only when the number of observations supports them; otherwise give the individual observations and state the sample count. Do not set a pass threshold from this preparation alone.
 
 | Dimension | Measurement | Oracle and limits |

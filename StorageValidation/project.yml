@@ -60,6 +60,8 @@ targets:
       - path: ../KeepsakeTests/LocalCaptureExperimentTests.swift
       - path: ../KeepsakeTests/ResourceWorkloadFixtures.swift
       - path: ../KeepsakeTests/ResourceWorkloadFixtureTests.swift
+      - path: ../KeepsakeTests/ResourceWorkloadDriver.swift
+      - path: ../KeepsakeTests/ResourceWorkloadDriverTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:
