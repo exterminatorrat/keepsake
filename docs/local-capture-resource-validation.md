@@ -18,6 +18,8 @@ The storage page limit is 256 rows and the encoded page payload limit is 256 KiB
 
 ## Bounded, baseline-first fixtures
 
+`ResourceWorkloadFixtures.swift` now authors indexed synthetic inputs and batches capped at 32 rows for the six stages below, with fixed timestamps, deterministic IDs, page bounds and API/Stop expectation data. The test-target-only helper and its five one-minute Swift Testing declarations (20 expanded cases) are registered in both existing projects. Independent source/golden checks ran in Python; the Swift code remains uncompiled/unrun. This is not a persistence workload driver, cursor-continuation check or metric collector, and it does not change the current seven-suite verification packet or activate either app entry.
+
 Use each profile against its own fresh isolated store, serially. Fixture cadence and path shape are synthetic test inputs, not a proposed Core Location sampling policy. Do not proceed to the next scale until the preceding stage completes within its admission and no unresolved outcome remains.
 
 | Stage | Synthetic input | Bounded check |

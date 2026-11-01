@@ -40,6 +40,8 @@
 		815E1AA7B2BF01CE46B5225D /* LocalCaptureConsumerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354815E2D5983A057BA5B31E /* LocalCaptureConsumerTests.swift */; };
 		C06836030A4107B895342A22 /* LocalCaptureWriteAdmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C636557E2BF9110F7D305AB /* LocalCaptureWriteAdmissionTests.swift */; };
 		91114E4AE39C23BB59B5B3E0 /* LocalCaptureExperimentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7206A84179AFBEC3DC0A58F2 /* LocalCaptureExperimentTests.swift */; };
+		08A44431F68040B04FA86381 /* ResourceWorkloadFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F63996DE97207F31B3D4537 /* ResourceWorkloadFixtures.swift */; };
+		DE4CCB383C72AB53154371EA /* ResourceWorkloadFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C198C92C52BB243174E744AA /* ResourceWorkloadFixtureTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +90,8 @@
 		354815E2D5983A057BA5B31E /* LocalCaptureConsumerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureConsumerTests.swift; sourceTree = "<group>"; };
 		1C636557E2BF9110F7D305AB /* LocalCaptureWriteAdmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureWriteAdmissionTests.swift; sourceTree = "<group>"; };
 		7206A84179AFBEC3DC0A58F2 /* LocalCaptureExperimentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentTests.swift; sourceTree = "<group>"; };
+		7F63996DE97207F31B3D4537 /* ResourceWorkloadFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceWorkloadFixtures.swift; sourceTree = "<group>"; };
+		C198C92C52BB243174E744AA /* ResourceWorkloadFixtureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceWorkloadFixtureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -163,6 +167,8 @@
 				354815E2D5983A057BA5B31E /* LocalCaptureConsumerTests.swift */,
 				1C636557E2BF9110F7D305AB /* LocalCaptureWriteAdmissionTests.swift */,
 				7206A84179AFBEC3DC0A58F2 /* LocalCaptureExperimentTests.swift */,
+				7F63996DE97207F31B3D4537 /* ResourceWorkloadFixtures.swift */,
+				C198C92C52BB243174E744AA /* ResourceWorkloadFixtureTests.swift */,
 				E10000000000000000000005 /* RecorderModelTests.swift */,
 				E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */,
 				690F8F3000BA4A3BE88AFF24 /* RecordingStateTests.swift */,
@@ -282,6 +288,8 @@
 				815E1AA7B2BF01CE46B5225D /* LocalCaptureConsumerTests.swift in Sources */,
 				C06836030A4107B895342A22 /* LocalCaptureWriteAdmissionTests.swift in Sources */,
 				91114E4AE39C23BB59B5B3E0 /* LocalCaptureExperimentTests.swift in Sources */,
+				08A44431F68040B04FA86381 /* ResourceWorkloadFixtures.swift in Sources */,
+				DE4CCB383C72AB53154371EA /* ResourceWorkloadFixtureTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
