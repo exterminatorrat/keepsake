@@ -32,6 +32,14 @@
 		BEE027C95E90157F4CE2BC36 /* RouteRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD52CA16F7EE0032324FA76 /* RouteRepositoryTests.swift */; };
 		DCCE7A6C8DC1FE5091828C21 /* RouteSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418D55C6716F5C9605541A7B /* RouteSample.swift */; };
 		F23C03E4DA69370D40E3BBBC /* RouteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C14FC8BACAACD2900E595D /* RouteRepository.swift */; };
+		4A6295522156117256B86738 /* LocalCaptureConsumerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 575578E5EE4E053635A01B86 /* LocalCaptureConsumerModel.swift */; };
+		1C661E3672C4880777505C24 /* LocalCaptureWriteAdmission.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD4C390BFAFB1FA64D4AA5A /* LocalCaptureWriteAdmission.swift */; };
+		79D6D18C5876CD0120C29A7F /* LocalCaptureHistoryReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFC7FC0C108E5489106358A /* LocalCaptureHistoryReading.swift */; };
+		C5C6DCCB1AE1075956CFA37A /* LocalCaptureExperiment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9BD1D6B2C2913EBB1CAA18B /* LocalCaptureExperiment.swift */; };
+		0E4B2EA24806B3039C3D66ED /* LocalCaptureExperimentHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB74FCD739336A2889B9829 /* LocalCaptureExperimentHost.swift */; };
+		815E1AA7B2BF01CE46B5225D /* LocalCaptureConsumerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354815E2D5983A057BA5B31E /* LocalCaptureConsumerTests.swift */; };
+		C06836030A4107B895342A22 /* LocalCaptureWriteAdmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C636557E2BF9110F7D305AB /* LocalCaptureWriteAdmissionTests.swift */; };
+		91114E4AE39C23BB59B5B3E0 /* LocalCaptureExperimentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7206A84179AFBEC3DC0A58F2 /* LocalCaptureExperimentTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +80,14 @@
 		BDD17F5C35C92C9DA45D1046 /* KeepsakeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KeepsakeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CBFFE0102EBB1C88EEF83D51 /* RouteHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistoryTests.swift; sourceTree = "<group>"; };
 		D5924C921F03E004AC98F4A2 /* RecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModel.swift; sourceTree = "<group>"; };
+		575578E5EE4E053635A01B86 /* LocalCaptureConsumerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureConsumerModel.swift; sourceTree = "<group>"; };
+		FAD4C390BFAFB1FA64D4AA5A /* LocalCaptureWriteAdmission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureWriteAdmission.swift; sourceTree = "<group>"; };
+		BCFC7FC0C108E5489106358A /* LocalCaptureHistoryReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureHistoryReading.swift; sourceTree = "<group>"; };
+		A9BD1D6B2C2913EBB1CAA18B /* LocalCaptureExperiment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperiment.swift; sourceTree = "<group>"; };
+		ECB74FCD739336A2889B9829 /* LocalCaptureExperimentHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentHost.swift; sourceTree = "<group>"; };
+		354815E2D5983A057BA5B31E /* LocalCaptureConsumerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureConsumerTests.swift; sourceTree = "<group>"; };
+		1C636557E2BF9110F7D305AB /* LocalCaptureWriteAdmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureWriteAdmissionTests.swift; sourceTree = "<group>"; };
+		7206A84179AFBEC3DC0A58F2 /* LocalCaptureExperimentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -79,6 +95,7 @@
 			isa = PBXGroup;
 			children = (
 				36C27A1B6CADFBF3EAFA7124 /* RouteHomeView.swift */,
+				ECB74FCD739336A2889B9829 /* LocalCaptureExperimentHost.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -109,6 +126,7 @@
 			children = (
 				56C14FC8BACAACD2900E595D /* RouteRepository.swift */,
 				E10000000000000000000008 /* LocalCapturePersistence.swift */,
+				BCFC7FC0C108E5489106358A /* LocalCaptureHistoryReading.swift */,
 				E10000000000000000000001 /* RouteStore.swift */,
 				E10000000000000000000002 /* RouteStoreFiles.swift */,
 			);
@@ -119,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				78A3677FC5B2787A3794B1CB /* KeepsakeApp.swift */,
+				A9BD1D6B2C2913EBB1CAA18B /* LocalCaptureExperiment.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -141,6 +160,9 @@
 				E1000000000000000000000C /* LocalCaptureCoordinatorTests.swift */,
 				E1000000000000000000000F /* LocalCaptureLifecycleTests.swift */,
 				E1000000000000000000000D /* CaptureHistoryTests.swift */,
+				354815E2D5983A057BA5B31E /* LocalCaptureConsumerTests.swift */,
+				1C636557E2BF9110F7D305AB /* LocalCaptureWriteAdmissionTests.swift */,
+				7206A84179AFBEC3DC0A58F2 /* LocalCaptureExperimentTests.swift */,
 				E10000000000000000000005 /* RecorderModelTests.swift */,
 				E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */,
 				690F8F3000BA4A3BE88AFF24 /* RecordingStateTests.swift */,
@@ -168,6 +190,8 @@
 				E10000000000000000000004 /* RecorderLifecycleSupport.swift */,
 				0A839C69BBA3597989E73AF1 /* LocationAuthorizationObserver.swift */,
 				D5924C921F03E004AC98F4A2 /* RecorderModel.swift */,
+				575578E5EE4E053635A01B86 /* LocalCaptureConsumerModel.swift */,
+				FAD4C390BFAFB1FA64D4AA5A /* LocalCaptureWriteAdmission.swift */,
 			);
 			path = Location;
 			sourceTree = "<group>";
@@ -255,6 +279,9 @@
 				A13D71C6FD20A15438A002E7 /* RouteHistoryTests.swift in Sources */,
 				BEE027C95E90157F4CE2BC36 /* RouteRepositoryTests.swift in Sources */,
 				E20000000000000000000003 /* RouteStoreTests.swift in Sources */,
+				815E1AA7B2BF01CE46B5225D /* LocalCaptureConsumerTests.swift in Sources */,
+				C06836030A4107B895342A22 /* LocalCaptureWriteAdmissionTests.swift in Sources */,
+				91114E4AE39C23BB59B5B3E0 /* LocalCaptureExperimentTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,6 +303,11 @@
 				E20000000000000000000001 /* RouteStore.swift in Sources */,
 				E20000000000000000000002 /* RouteStoreFiles.swift in Sources */,
 				DCCE7A6C8DC1FE5091828C21 /* RouteSample.swift in Sources */,
+				4A6295522156117256B86738 /* LocalCaptureConsumerModel.swift in Sources */,
+				79D6D18C5876CD0120C29A7F /* LocalCaptureHistoryReading.swift in Sources */,
+				1C661E3672C4880777505C24 /* LocalCaptureWriteAdmission.swift in Sources */,
+				C5C6DCCB1AE1075956CFA37A /* LocalCaptureExperiment.swift in Sources */,
+				0E4B2EA24806B3039C3D66ED /* LocalCaptureExperimentHost.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
