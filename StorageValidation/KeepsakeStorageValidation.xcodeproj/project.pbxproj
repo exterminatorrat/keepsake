@@ -36,6 +36,10 @@
 		EB15F639788E310DB4C098BE /* LocalCaptureConsumerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109D70FB2DE21B94E4A6CE5A /* LocalCaptureConsumerTests.swift */; };
 		E4CE64460DCC549604DE4D70 /* LocalCaptureWriteAdmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81CB9F5294349BED30E3A755 /* LocalCaptureWriteAdmissionTests.swift */; };
 		3461E7C9A807714095B1CEA6 /* LocalCaptureExperimentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D696BB825038790C0FC200 /* LocalCaptureExperimentTests.swift */; };
+		93AACCE2F695236A0793821E /* ResourceWorkloadFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897F3636F2A743B42DCB72F9 /* ResourceWorkloadFixtures.swift */; };
+		F63B582999CF08058B29D696 /* ResourceWorkloadFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44157EB49F7477FEC2543214 /* ResourceWorkloadFixtureTests.swift */; };
+		C70000000000000000000001 /* ResourceWorkloadDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80000000000000000000001 /* ResourceWorkloadDriver.swift */; };
+		C70000000000000000000002 /* ResourceWorkloadDriverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80000000000000000000002 /* ResourceWorkloadDriverTests.swift */; };
 		29B6A450732F5A2F27CB3BDC /* RouteHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78548CB6ECE380C1DB8945BB /* RouteHistoryTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -81,6 +85,10 @@
 		109D70FB2DE21B94E4A6CE5A /* LocalCaptureConsumerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureConsumerTests.swift; sourceTree = "<group>"; };
 		81CB9F5294349BED30E3A755 /* LocalCaptureWriteAdmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureWriteAdmissionTests.swift; sourceTree = "<group>"; };
 		A0D696BB825038790C0FC200 /* LocalCaptureExperimentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentTests.swift; sourceTree = "<group>"; };
+		897F3636F2A743B42DCB72F9 /* ResourceWorkloadFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceWorkloadFixtures.swift; sourceTree = "<group>"; };
+		44157EB49F7477FEC2543214 /* ResourceWorkloadFixtureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceWorkloadFixtureTests.swift; sourceTree = "<group>"; };
+		C80000000000000000000001 /* ResourceWorkloadDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceWorkloadDriver.swift; sourceTree = "<group>"; };
+		C80000000000000000000002 /* ResourceWorkloadDriverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceWorkloadDriverTests.swift; sourceTree = "<group>"; };
 		78548CB6ECE380C1DB8945BB /* RouteHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -147,6 +155,10 @@
 				109D70FB2DE21B94E4A6CE5A /* LocalCaptureConsumerTests.swift */,
 				81CB9F5294349BED30E3A755 /* LocalCaptureWriteAdmissionTests.swift */,
 				A0D696BB825038790C0FC200 /* LocalCaptureExperimentTests.swift */,
+				897F3636F2A743B42DCB72F9 /* ResourceWorkloadFixtures.swift */,
+				44157EB49F7477FEC2543214 /* ResourceWorkloadFixtureTests.swift */,
+				C80000000000000000000001 /* ResourceWorkloadDriver.swift */,
+				C80000000000000000000002 /* ResourceWorkloadDriverTests.swift */,
 			);
 			path = KeepsakeTests;
 			sourceTree = "<group>";
@@ -304,6 +316,10 @@
 				EB15F639788E310DB4C098BE /* LocalCaptureConsumerTests.swift in Sources */,
 				E4CE64460DCC549604DE4D70 /* LocalCaptureWriteAdmissionTests.swift in Sources */,
 				3461E7C9A807714095B1CEA6 /* LocalCaptureExperimentTests.swift in Sources */,
+				93AACCE2F695236A0793821E /* ResourceWorkloadFixtures.swift in Sources */,
+				F63B582999CF08058B29D696 /* ResourceWorkloadFixtureTests.swift in Sources */,
+				C70000000000000000000001 /* ResourceWorkloadDriver.swift in Sources */,
+				C70000000000000000000002 /* ResourceWorkloadDriverTests.swift in Sources */,
 				29B6A450732F5A2F27CB3BDC /* RouteHistoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

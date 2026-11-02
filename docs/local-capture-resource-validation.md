@@ -18,6 +18,8 @@ The storage page limit is 256 rows and the encoded page payload limit is 256 KiB
 
 ## Bounded, baseline-first fixtures
 
+`ResourceWorkloadFixtures.swift` now authors indexed synthetic inputs and batches capped at 32 rows for the six stages below, with fixed timestamps, deterministic IDs, page bounds and API/Stop expectation data. The test-target-only helper and its five one-minute Swift Testing declarations (20 expanded cases) are registered in both existing projects. Independent source/golden checks ran in Python; the Swift code remains uncompiled/unrun. This is not a persistence workload driver, cursor-continuation check or metric collector, and it does not change the current seven-suite verification packet or activate either app entry.
+
 Use each profile against its own fresh isolated store, serially. Fixture cadence and path shape are synthetic test inputs, not a proposed Core Location sampling policy. Do not proceed to the next scale until the preceding stage completes within its admission and no unresolved outcome remains.
 
 | Stage | Synthetic input | Bounded check |
@@ -32,6 +34,14 @@ Use each profile against its own fresh isolated store, serially. Fixture cadence
 The stationary, walking, and driving fixtures can check preservation of known synthetic coordinates and exercise consumers with different route shapes. They cannot measure sensor accuracy or battery use because they do not exercise the physical location hardware. A physical accuracy run needs an independently known reference and a separately approved finite field scope; without both, report accuracy as unmeasured.
 
 ## Measurement oracle
+
+### Authored driver and attributable event hooks
+
+The test-only `ResourceWorkloadDriver` accepts exactly one selected stage and repetition per call; it never advances to another stage or repetition automatically. It creates a synthetic foundation store, appends batches of at most 32, verifies Stop through close/reopen and receipt lookup, and reads every expected page to its terminal cursor. Each expected page contains at most 128 samples; no whole-interval expected route is materialized. Exact samples, sequences, epochs, returned encoded payload sizes, cursor high-water/deletion/store-open identity, call counts and persisted Stop/control are checked. Errors close the current store without retry, reconciliation, clear or pruning.
+
+Injected hooks emit operation/stage/batch/page/Stop boundaries with operation ID, stage/repetition, monotonic ticks and bounded row/payload/call counts. `pageStarted`→`pageReturned` spans the awaited page API; `pageCompleted` follows its validation. `stopStarted`→`stopReturned` spans the awaited durable Stop API; `stopCompleted` follows receipt validation, close/reopen, control and receipt-lookup verification. These are not runtime-stop or rendered-UI intervals. A real collector must bind the monotonic clock domain, units/rate and measured process/window; the test clock is only an incrementing fake, not elapsed time. Observers must not retain unbounded event history or perform heavy synchronous work when attributing workload costs.
+
+Two authored one-minute tests select only B0 and invalid-repetition rejection. Both checked-in test targets and the inert manifest register the driver/tests; app source phases and existing fixture sources are unchanged. Swift compilation, execution, cursor/payload outcomes and physical resource metrics remain unverified. Hooks alone collect no CPU, physical memory, volume/file/write, energy or rendered-UI measurements. Existing guard memory/capacity admission readings are safety predicates, not workload measurements; no scale-up or native execution is authorized by these sources.
 
 Record the exact build, device and OS when applicable, test target/process being measured, fixture and row counts, page size, run count, measurement tool/version, and any relevant thermal, charging, brightness, or network conditions. Keep runs serial and record each result before summarizing it. Report median, p95, and maximum only when the number of observations supports them; otherwise give the individual observations and state the sample count. Do not set a pass threshold from this preparation alone.
 
