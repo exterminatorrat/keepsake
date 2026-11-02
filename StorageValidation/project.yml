@@ -31,6 +31,7 @@ targets:
       - path: ../Keepsake/Storage/RouteStore.swift
       - path: ../Keepsake/Storage/RouteStoreFiles.swift
       - path: ../Keepsake/App/LocalCaptureExperiment.swift
+      - path: ../Keepsake/Views/LocalCaptureExperimentHost.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_BUNDLE_IDENTIFIER)"
@@ -58,11 +59,27 @@ targets:
       - path: ../KeepsakeTests/LocalCaptureConsumerTests.swift
       - path: ../KeepsakeTests/LocalCaptureWriteAdmissionTests.swift
       - path: ../KeepsakeTests/LocalCaptureExperimentTests.swift
+      - path: LocalCaptureExperimentSyntheticVisualFixture.swift
+      - path: LocalCaptureExperimentSyntheticVisualFixtureTests.swift
     dependencies:
       - target: KeepsakeStorageValidation
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER)"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation
+        BUNDLE_LOADER: $(TEST_HOST)
+  StorageValidationRenderEntryTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LocalCaptureExperimentSyntheticVisualFixture.swift
+      - path: LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift
+    dependencies:
+      - target: KeepsakeStorageValidation
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER).render-entry"
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation
         BUNDLE_LOADER: $(TEST_HOST)
@@ -75,4 +92,13 @@ schemes:
     test:
       targets:
         - StorageValidationTests
+      parallelizable: false
+  KeepsakeStorageValidationRenderEntry:
+    build:
+      targets:
+        KeepsakeStorageValidation: [test]
+        StorageValidationRenderEntryTests: [test]
+    test:
+      targets:
+        - StorageValidationRenderEntryTests
       parallelizable: false

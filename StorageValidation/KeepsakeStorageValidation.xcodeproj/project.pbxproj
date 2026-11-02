@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A81000000000000000000001 /* LocalCaptureExperimentHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000001 /* LocalCaptureExperimentHost.swift */; };
+		A81000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */; };
+		A81000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift */; };
 		E4000000000000000000000E /* LocalCaptureLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000E /* LocalCaptureLifecycle.swift */; };
 		E4000000000000000000000F /* LocalCaptureLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000F /* LocalCaptureLifecycleTests.swift */; };
 		E40000000000000000000008 /* LocalCapturePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000008 /* LocalCapturePersistence.swift */; };
@@ -37,6 +40,8 @@
 		E4CE64460DCC549604DE4D70 /* LocalCaptureWriteAdmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81CB9F5294349BED30E3A755 /* LocalCaptureWriteAdmissionTests.swift */; };
 		3461E7C9A807714095B1CEA6 /* LocalCaptureExperimentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D696BB825038790C0FC200 /* LocalCaptureExperimentTests.swift */; };
 		29B6A450732F5A2F27CB3BDC /* RouteHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78548CB6ECE380C1DB8945BB /* RouteHistoryTests.swift */; };
+		A83000000000000000000001 /* LocalCaptureExperimentSyntheticVisualFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */; };
+		A83000000000000000000002 /* LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84000000000000000000001 /* LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +55,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A82000000000000000000001 /* LocalCaptureExperimentHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Keepsake/Views/LocalCaptureExperimentHost.swift; sourceTree = SOURCE_ROOT; };
+		A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentSyntheticVisualFixture.swift; sourceTree = SOURCE_ROOT; };
+		A82000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentSyntheticVisualFixtureTests.swift; sourceTree = SOURCE_ROOT; };
 		E3000000000000000000000E /* LocalCaptureLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycle.swift; sourceTree = "<group>"; };
 		E3000000000000000000000F /* LocalCaptureLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycleTests.swift; sourceTree = "<group>"; };
 		E30000000000000000000008 /* LocalCapturePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCapturePersistence.swift; sourceTree = "<group>"; };
@@ -82,6 +90,8 @@
 		81CB9F5294349BED30E3A755 /* LocalCaptureWriteAdmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureWriteAdmissionTests.swift; sourceTree = "<group>"; };
 		A0D696BB825038790C0FC200 /* LocalCaptureExperimentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentTests.swift; sourceTree = "<group>"; };
 		78548CB6ECE380C1DB8945BB /* RouteHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistoryTests.swift; sourceTree = "<group>"; };
+		A84000000000000000000001 /* LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift; sourceTree = SOURCE_ROOT; };
+		A84000000000000000000002 /* StorageValidationRenderEntryTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StorageValidationRenderEntryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -127,6 +137,7 @@
 			children = (
 				C990B86A1FBE4817FF7BC635 /* KeepsakeStorageValidation.app */,
 				77592125C230065016178062 /* StorageValidationTests.xctest */,
+				A84000000000000000000002 /* StorageValidationRenderEntryTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -154,6 +165,10 @@
 		E2DA7A57E1BA71F2A1A6D29B = {
 			isa = PBXGroup;
 			children = (
+				A82000000000000000000001 /* LocalCaptureExperimentHost.swift */,
+				A82000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift */,
+				A82000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift */,
+				A84000000000000000000001 /* LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift */,
 				3CBCF20E6ECC28CBCDCBF944 /* StorageValidationApp.swift */,
 				F6F1B2EF6E0D6482C6C6F2E6 /* keepsake */,
 				C2B1D0797C89C9AC23599D7E /* Products */,
@@ -226,6 +241,24 @@
 			productReference = 77592125C230065016178062 /* StorageValidationTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A85000000000000000000001 /* StorageValidationRenderEntryTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A88000000000000000000001 /* Build configuration list for PBXNativeTarget "StorageValidationRenderEntryTests" */;
+			buildPhases = (
+				A86000000000000000000001 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A89000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = StorageValidationRenderEntryTests;
+			packageProductDependencies = (
+			);
+			productName = StorageValidationRenderEntryTests;
+			productReference = A84000000000000000000002 /* StorageValidationRenderEntryTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -259,6 +292,7 @@
 			targets = (
 				1A660B3CEABC248C479BC72D /* KeepsakeStorageValidation */,
 				9DCAF6E0A000E88541E290B4 /* StorageValidationTests */,
+				A85000000000000000000001 /* StorageValidationRenderEntryTests */,
 			);
 		};
 /* End PBXProject section */
@@ -285,6 +319,7 @@
 				FD81A8D39F114F97CBCA9B59 /* LocalCaptureWriteAdmission.swift in Sources */,
 				216C96AEE844F046284DFCB7 /* LocalCaptureHistoryReading.swift in Sources */,
 				647FBA065118F090C8548395 /* LocalCaptureExperiment.swift in Sources */,
+				A81000000000000000000001 /* LocalCaptureExperimentHost.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -305,6 +340,17 @@
 				E4CE64460DCC549604DE4D70 /* LocalCaptureWriteAdmissionTests.swift in Sources */,
 				3461E7C9A807714095B1CEA6 /* LocalCaptureExperimentTests.swift in Sources */,
 				29B6A450732F5A2F27CB3BDC /* RouteHistoryTests.swift in Sources */,
+				A81000000000000000000002 /* LocalCaptureExperimentSyntheticVisualFixture.swift in Sources */,
+				A81000000000000000000003 /* LocalCaptureExperimentSyntheticVisualFixtureTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A86000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A83000000000000000000001 /* LocalCaptureExperimentSyntheticVisualFixture.swift in Sources */,
+				A83000000000000000000002 /* LocalCaptureExperimentSyntheticVisualRenderEntryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -312,6 +358,11 @@
 
 /* Begin PBXTargetDependency section */
 		1CCA45D107096E0485A94E72 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A660B3CEABC248C479BC72D /* KeepsakeStorageValidation */;
+			targetProxy = 9E414C97ACA4EAC66B705656 /* PBXContainerItemProxy */;
+		};
+		A89000000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 1A660B3CEABC248C479BC72D /* KeepsakeStorageValidation */;
 			targetProxy = 9E414C97ACA4EAC66B705656 /* PBXContainerItemProxy */;
@@ -520,6 +571,40 @@
 			};
 			name = Release;
 		};
+		A87000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER).render-entry";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation";
+			};
+			name = Debug;
+		};
+		A87000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_VALIDATION_TEST_BUNDLE_IDENTIFIER).render-entry";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KeepsakeStorageValidation.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KeepsakeStorageValidation";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -546,6 +631,15 @@
 			buildConfigurations = (
 				0C7A0F41EE9778ED46C0493A /* Debug */,
 				F055450882F0DED068082EA8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A88000000000000000000001 /* Build configuration list for PBXNativeTarget "StorageValidationRenderEntryTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A87000000000000000000001 /* Debug */,
+				A87000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

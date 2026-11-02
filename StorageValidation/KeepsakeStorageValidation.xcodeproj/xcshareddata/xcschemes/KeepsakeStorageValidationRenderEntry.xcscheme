@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme LastUpgradeVersion="1430" version="1.7">
+   <BuildAction parallelizeBuildables="NO" buildImplicitDependencies="YES">
+      <BuildActionEntries>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="1A660B3CEABC248C479BC72D" BuildableName="KeepsakeStorageValidation.app" BlueprintName="KeepsakeStorageValidation" ReferencedContainer="container:KeepsakeStorageValidation.xcodeproj"/>
+         </BuildActionEntry>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A85000000000000000000001" BuildableName="StorageValidationRenderEntryTests.xctest" BlueprintName="StorageValidationRenderEntryTests" ReferencedContainer="container:KeepsakeStorageValidation.xcodeproj"/>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="NO" testTimeoutsEnabled="YES" defaultTestExecutionTimeAllowance="60" maximumTestExecutionTimeAllowance="60">
+      <MacroExpansion>
+         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="1A660B3CEABC248C479BC72D" BuildableName="KeepsakeStorageValidation.app" BlueprintName="KeepsakeStorageValidation" ReferencedContainer="container:KeepsakeStorageValidation.xcodeproj"/>
+      </MacroExpansion>
+      <Testables>
+         <TestableReference skipped="NO" parallelizable="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A85000000000000000000001" BuildableName="StorageValidationRenderEntryTests.xctest" BlueprintName="StorageValidationRenderEntryTests" ReferencedContainer="container:KeepsakeStorageValidation.xcodeproj"/>
+         </TestableReference>
+      </Testables>
+   </TestAction>
+</Scheme>
