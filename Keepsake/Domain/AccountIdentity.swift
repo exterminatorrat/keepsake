@@ -38,7 +38,7 @@ enum GroupNameInput {
         guard !name.isEmpty,
               name.unicodeScalars.count <= 80,
               name.unicodeScalars.contains(where: { !CharacterSet.whitespacesAndNewlines.contains($0) }),
-              !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+              !name.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else {
             return nil
         }
         return name

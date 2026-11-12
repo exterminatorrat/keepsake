@@ -37,6 +37,18 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/Keepsake.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Keepsake
         BUNDLE_LOADER: $(TEST_HOST)
 schemes:
+  KeepsakeScreenReference:
+    build:
+      targets:
+        KeepsakeTests: [test]
+    test:
+      targets:
+        - name: KeepsakeTests
+          parallelizable: false
+          selectedTests:
+            - WaveOneReferenceRenderTests/testScreenReferenceAttachments()
+      environmentVariables:
+        KEEPSAKE_REFERENCE_RENDER: "1"
   Keepsake:
     build:
       targets:

@@ -24,6 +24,33 @@
 		BEE027C95E90157F4CE2BC36 /* RouteRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD52CA16F7EE0032324FA76 /* RouteRepositoryTests.swift */; };
 		DCCE7A6C8DC1FE5091828C21 /* RouteSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418D55C6716F5C9605541A7B /* RouteSample.swift */; };
 		F23C03E4DA69370D40E3BBBC /* RouteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C14FC8BACAACD2900E595D /* RouteRepository.swift */; };
+		2659DF72A368EC421B20457E /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0195E808EFD87F04A797A4E /* AppRootView.swift */; };
+		5A87F0BFF6EF413D388C4202 /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178BF857943C8060751EA27B /* AppServices.swift */; };
+		B03C52F1F6257D614C6FA667 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 189411C675D4F75ECA2CA7AD /* AppSession.swift */; };
+		B2FC13040FC73D427DF7F6A8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3DEDB2A31D6F1D55E33F41E /* Theme.swift */; };
+		C8F09BBB7D1C9169DAFDE5B5 /* AccountIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA70A41E7570CF8D2DE0D8E2 /* AccountIdentity.swift */; };
+		6E834A9E840328B1D5C14EAC /* WaveOneState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20ED2C3E8A42B85FE8BE136 /* WaveOneState.swift */; };
+		32F284A0A8336D675D238DE9 /* AuthInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894FCBFE1F6B13D204C1D002 /* AuthInput.swift */; };
+		30E995B1408278F384992010 /* AuthScreenPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180DCB3FEA0DB3AA418F8322 /* AuthScreenPreviews.swift */; };
+		AF6B689887A8936369B4F7AE /* AuthScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ACEBAD8455CCD7B6951719 /* AuthScreenView.swift */; };
+		484859F80B8793016CECA500 /* GroupComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C9B01C95F2B8028579E7D8 /* GroupComponents.swift */; };
+		08CD178C7AAB324C839E013E /* GroupCreateFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9207D94A23909264F11272CA /* GroupCreateFormView.swift */; };
+		4975A2221A9B9A55718C4FF5 /* GroupMapBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77D58F3A233C82F1250909A /* GroupMapBackdrop.swift */; };
+		2223455B2553E46F89630C95 /* GroupMemberViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B663DD19A3F95F67555451E5 /* GroupMemberViews.swift */; };
+		A26EE3D9556999448FF7021C /* GroupSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621A537C054AE44486E04368 /* GroupSelectorView.swift */; };
+		97A9A76C9FA23B9AB7805BE9 /* GroupSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65AAADC3ECA993476B56CBBA /* GroupSheetView.swift */; };
+		FD5B13BD5C0273D918126C0E /* GroupStatusViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80085E1F2A866F4B29B34E42 /* GroupStatusViews.swift */; };
+		4C773B169E57EE354A8C7509 /* GroupTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B500CC00DA0AB3CCFABE1C97 /* GroupTabBar.swift */; };
+		2C1F1F05683CCDED9BC15CAD /* GroupsNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D1D61DF6CD44CCD6FCA8A7 /* GroupsNavigation.swift */; };
+		D5F6E3CF7D200E6D95C1C336 /* GroupsShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EDE524CA0E5DCB47BE28D20 /* GroupsShellView.swift */; };
+		897AF3CE47EB066E63312E35 /* UnavailableFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53F50DA166A2C64067D7D9EA /* UnavailableFeature.swift */; };
+		7B40C480CAA9649DA003DFAE /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D435927003917FAA8315836 /* AccountView.swift */; };
+		1EE5AC71A9CD30B65A8218F4 /* GroupSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE6C53B75BC97D0CD4388F9 /* GroupSummaryView.swift */; };
+		6041CEFC0FB554D6909A6015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B6E4282296F594D527C9DE5 /* SettingsView.swift */; };
+		B9AD10627A1B354B93625F2C /* AppSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8ADEEA8353B5ADC32A562D1 /* AppSessionTests.swift */; };
+		049690E27D9172ECD5359DFD /* AuthInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED16BBCE48DF6CDF22C3BAE /* AuthInputTests.swift */; };
+		11F125AD68537446DA781945 /* GroupsNavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE28290D84E00C4BD81B382 /* GroupsNavigationTests.swift */; };
+		FB97824579D7FFB5AD08CAF3 /* WaveOneReferenceRenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3361C5FB021407D7757FF20D /* WaveOneReferenceRenderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +83,33 @@
 		BDD17F5C35C92C9DA45D1046 /* KeepsakeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KeepsakeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CBFFE0102EBB1C88EEF83D51 /* RouteHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHistoryTests.swift; sourceTree = "<group>"; };
 		D5924C921F03E004AC98F4A2 /* RecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderModel.swift; sourceTree = "<group>"; };
+		C0195E808EFD87F04A797A4E /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/AppRootView.swift"; sourceTree = "<group>"; };
+		178BF857943C8060751EA27B /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/AppServices.swift"; sourceTree = "<group>"; };
+		189411C675D4F75ECA2CA7AD /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/AppSession.swift"; sourceTree = "<group>"; };
+		D3DEDB2A31D6F1D55E33F41E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Design/Theme.swift"; sourceTree = "<group>"; };
+		FA70A41E7570CF8D2DE0D8E2 /* AccountIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Domain/AccountIdentity.swift"; sourceTree = "<group>"; };
+		C20ED2C3E8A42B85FE8BE136 /* WaveOneState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Domain/WaveOneState.swift"; sourceTree = "<group>"; };
+		894FCBFE1F6B13D204C1D002 /* AuthInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthInput.swift"; sourceTree = "<group>"; };
+		180DCB3FEA0DB3AA418F8322 /* AuthScreenPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthScreenPreviews.swift"; sourceTree = "<group>"; };
+		01ACEBAD8455CCD7B6951719 /* AuthScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthScreenView.swift"; sourceTree = "<group>"; };
+		B8C9B01C95F2B8028579E7D8 /* GroupComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupComponents.swift"; sourceTree = "<group>"; };
+		9207D94A23909264F11272CA /* GroupCreateFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupCreateFormView.swift"; sourceTree = "<group>"; };
+		A77D58F3A233C82F1250909A /* GroupMapBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupMapBackdrop.swift"; sourceTree = "<group>"; };
+		B663DD19A3F95F67555451E5 /* GroupMemberViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupMemberViews.swift"; sourceTree = "<group>"; };
+		621A537C054AE44486E04368 /* GroupSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupSelectorView.swift"; sourceTree = "<group>"; };
+		65AAADC3ECA993476B56CBBA /* GroupSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupSheetView.swift"; sourceTree = "<group>"; };
+		80085E1F2A866F4B29B34E42 /* GroupStatusViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupStatusViews.swift"; sourceTree = "<group>"; };
+		B500CC00DA0AB3CCFABE1C97 /* GroupTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupTabBar.swift"; sourceTree = "<group>"; };
+		F4D1D61DF6CD44CCD6FCA8A7 /* GroupsNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupsNavigation.swift"; sourceTree = "<group>"; };
+		6EDE524CA0E5DCB47BE28D20 /* GroupsShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupsShellView.swift"; sourceTree = "<group>"; };
+		53F50DA166A2C64067D7D9EA /* UnavailableFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/UnavailableFeature.swift"; sourceTree = "<group>"; };
+		7D435927003917FAA8315836 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Settings/AccountView.swift"; sourceTree = "<group>"; };
+		AAE6C53B75BC97D0CD4388F9 /* GroupSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Settings/GroupSummaryView.swift"; sourceTree = "<group>"; };
+		6B6E4282296F594D527C9DE5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Settings/SettingsView.swift"; sourceTree = "<group>"; };
+		A8ADEEA8353B5ADC32A562D1 /* AppSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSessionTests.swift"; sourceTree = "<group>"; };
+		9ED16BBCE48DF6CDF22C3BAE /* AuthInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthInputTests.swift"; sourceTree = "<group>"; };
+		AFE28290D84E00C4BD81B382 /* GroupsNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GroupsNavigationTests.swift"; sourceTree = "<group>"; };
+		3361C5FB021407D7757FF20D /* WaveOneReferenceRenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WaveOneReferenceRenderTests.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -79,6 +133,7 @@
 		05581C82067A74F19AEBAD82 /* Keepsake */ = {
 			isa = PBXGroup;
 			children = (
+				5FB6E6881EEDD732CB6D138E /* Wave 1 Screens */,
 				4738B7C7F0E309FC72BE221B /* App */,
 				57664BF3E0CC52DB1E647328 /* Domain */,
 				FF16DCE34D28A88CDBF3EE0B /* Location */,
@@ -119,6 +174,10 @@
 		61E881E289660690541A7630 /* KeepsakeTests */ = {
 			isa = PBXGroup;
 			children = (
+				A8ADEEA8353B5ADC32A562D1 /* AppSessionTests.swift */,
+				9ED16BBCE48DF6CDF22C3BAE /* AuthInputTests.swift */,
+				AFE28290D84E00C4BD81B382 /* GroupsNavigationTests.swift */,
+				3361C5FB021407D7757FF20D /* WaveOneReferenceRenderTests.swift */,
 				E10000000000000000000005 /* RecorderModelTests.swift */,
 				E10000000000000000000006 /* LocationAuthorizationObserverTests.swift */,
 				690F8F3000BA4A3BE88AFF24 /* RecordingStateTests.swift */,
@@ -146,6 +205,36 @@
 				D5924C921F03E004AC98F4A2 /* RecorderModel.swift */,
 			);
 			path = Location;
+			sourceTree = "<group>";
+		};
+		5FB6E6881EEDD732CB6D138E /* Wave 1 Screens */ = {
+			isa = PBXGroup;
+			children = (
+				C0195E808EFD87F04A797A4E /* AppRootView.swift */,
+				178BF857943C8060751EA27B /* AppServices.swift */,
+				189411C675D4F75ECA2CA7AD /* AppSession.swift */,
+				D3DEDB2A31D6F1D55E33F41E /* Theme.swift */,
+				FA70A41E7570CF8D2DE0D8E2 /* AccountIdentity.swift */,
+				C20ED2C3E8A42B85FE8BE136 /* WaveOneState.swift */,
+				894FCBFE1F6B13D204C1D002 /* AuthInput.swift */,
+				180DCB3FEA0DB3AA418F8322 /* AuthScreenPreviews.swift */,
+				01ACEBAD8455CCD7B6951719 /* AuthScreenView.swift */,
+				B8C9B01C95F2B8028579E7D8 /* GroupComponents.swift */,
+				9207D94A23909264F11272CA /* GroupCreateFormView.swift */,
+				A77D58F3A233C82F1250909A /* GroupMapBackdrop.swift */,
+				B663DD19A3F95F67555451E5 /* GroupMemberViews.swift */,
+				621A537C054AE44486E04368 /* GroupSelectorView.swift */,
+				65AAADC3ECA993476B56CBBA /* GroupSheetView.swift */,
+				80085E1F2A866F4B29B34E42 /* GroupStatusViews.swift */,
+				B500CC00DA0AB3CCFABE1C97 /* GroupTabBar.swift */,
+				F4D1D61DF6CD44CCD6FCA8A7 /* GroupsNavigation.swift */,
+				6EDE524CA0E5DCB47BE28D20 /* GroupsShellView.swift */,
+				53F50DA166A2C64067D7D9EA /* UnavailableFeature.swift */,
+				7D435927003917FAA8315836 /* AccountView.swift */,
+				AAE6C53B75BC97D0CD4388F9 /* GroupSummaryView.swift */,
+				6B6E4282296F594D527C9DE5 /* SettingsView.swift */,
+			);
+			name = "Wave 1 Screens";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -220,6 +309,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9AD10627A1B354B93625F2C /* AppSessionTests.swift in Sources */,
+				049690E27D9172ECD5359DFD /* AuthInputTests.swift in Sources */,
+				11F125AD68537446DA781945 /* GroupsNavigationTests.swift in Sources */,
+				FB97824579D7FFB5AD08CAF3 /* WaveOneReferenceRenderTests.swift in Sources */,
 				E20000000000000000000005 /* RecorderModelTests.swift in Sources */,
 				E20000000000000000000006 /* LocationAuthorizationObserverTests.swift in Sources */,
 				B3423E01E8D267E2D2CED358 /* RecordingStateTests.swift in Sources */,
@@ -233,6 +326,29 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2659DF72A368EC421B20457E /* AppRootView.swift in Sources */,
+				5A87F0BFF6EF413D388C4202 /* AppServices.swift in Sources */,
+				B03C52F1F6257D614C6FA667 /* AppSession.swift in Sources */,
+				B2FC13040FC73D427DF7F6A8 /* Theme.swift in Sources */,
+				C8F09BBB7D1C9169DAFDE5B5 /* AccountIdentity.swift in Sources */,
+				6E834A9E840328B1D5C14EAC /* WaveOneState.swift in Sources */,
+				32F284A0A8336D675D238DE9 /* AuthInput.swift in Sources */,
+				30E995B1408278F384992010 /* AuthScreenPreviews.swift in Sources */,
+				AF6B689887A8936369B4F7AE /* AuthScreenView.swift in Sources */,
+				484859F80B8793016CECA500 /* GroupComponents.swift in Sources */,
+				08CD178C7AAB324C839E013E /* GroupCreateFormView.swift in Sources */,
+				4975A2221A9B9A55718C4FF5 /* GroupMapBackdrop.swift in Sources */,
+				2223455B2553E46F89630C95 /* GroupMemberViews.swift in Sources */,
+				A26EE3D9556999448FF7021C /* GroupSelectorView.swift in Sources */,
+				97A9A76C9FA23B9AB7805BE9 /* GroupSheetView.swift in Sources */,
+				FD5B13BD5C0273D918126C0E /* GroupStatusViews.swift in Sources */,
+				4C773B169E57EE354A8C7509 /* GroupTabBar.swift in Sources */,
+				2C1F1F05683CCDED9BC15CAD /* GroupsNavigation.swift in Sources */,
+				D5F6E3CF7D200E6D95C1C336 /* GroupsShellView.swift in Sources */,
+				897AF3CE47EB066E63312E35 /* UnavailableFeature.swift in Sources */,
+				7B40C480CAA9649DA003DFAE /* AccountView.swift in Sources */,
+				1EE5AC71A9CD30B65A8218F4 /* GroupSummaryView.swift in Sources */,
+				6041CEFC0FB554D6909A6015 /* SettingsView.swift in Sources */,
 				E20000000000000000000004 /* RecorderLifecycleSupport.swift in Sources */,
 				BC704A185B12183F2A9B7FF0 /* KeepsakeApp.swift in Sources */,
 				2AF5788ADCEF0CA35FBBCF05 /* LocationAuthorizationObserver.swift in Sources */,
