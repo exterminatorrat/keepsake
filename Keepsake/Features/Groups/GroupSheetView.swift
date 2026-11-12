@@ -5,6 +5,7 @@ struct GroupSheetView: View {
     let group: SoloGroup
     let isExpanded: Bool
     let isOffline: Bool
+    let height: CGFloat
     let onToggleExpanded: () -> Void
     let onShowMember: () -> Void
     let onRetry: () -> Void
@@ -13,15 +14,13 @@ struct GroupSheetView: View {
     var body: some View {
         VStack(spacing: 0) {
             handle
-            ViewThatFits(in: .vertical) {
+            ScrollView {
                 sheetContent
-                ScrollView {
-                    sheetContent
-                }
-                .scrollBounceBehavior(.basedOnSize)
             }
+            .scrollBounceBehavior(.basedOnSize)
         }
         .frame(maxWidth: .infinity)
+        .frame(height: height, alignment: .top)
         .background {
             UnevenRoundedRectangle(
                 topLeadingRadius: KeepsakeStyle.sheetRadius,
@@ -227,6 +226,65 @@ struct GroupSheetView: View {
         }
         .frame(minHeight: 46)
         .accessibilityElement(children: .combine)
+    }
+}
+
+@MainActor
+struct GroupMemberStrip: View {
+    let height: CGFloat
+    let onShowMember: () -> Void
+    let onUnavailable: (UnavailableFeature) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(KeepsakeStyle.separator)
+                .frame(width: 40, height: 5)
+                .frame(height: 20)
+                .accessibilityHidden(true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    GroupSectionHeader(title: "Members · 1")
+                    Button(action: onShowMember) {
+                        VStack(spacing: 4) {
+                            GroupMonogram(name: "You", size: 44)
+                            Text("You")
+                                .font(.caption)
+                                .foregroundStyle(KeepsakeStyle.ink)
+                        }
+                        .frame(minWidth: KeepsakeStyle.minimumHitTarget)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("You, the only group member")
+                    .accessibilityHint("Shows your member card")
+                    Divider().overlay(KeepsakeStyle.separator)
+                    HStack(spacing: 0) {
+                        ForEach(GroupAction.allCases) { action in
+                            Button { onUnavailable(action.feature) } label: {
+                                Label(action.title, systemImage: action.symbol)
+                                    .font(.caption)
+                                    .foregroundStyle(KeepsakeStyle.secondaryInk)
+                                    .frame(maxWidth: .infinity, minHeight: KeepsakeStyle.minimumHitTarget)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Not available in this build")
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .frame(height: height)
+        .background {
+            UnevenRoundedRectangle(
+                topLeadingRadius: KeepsakeStyle.sheetRadius,
+                topTrailingRadius: KeepsakeStyle.sheetRadius,
+                style: .continuous
+            )
+            .fill(KeepsakeStyle.surface)
+        }
     }
 }
 

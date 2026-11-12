@@ -46,6 +46,9 @@ schemes:
         - name: KeepsakeTests
           parallelizable: false
           selectedTests:
+            - GroupSheetLayoutTests
+            - ReferenceReadinessTests
+            - GroupsNavigationTests
             - WaveOneReferenceRenderTests/testScreenReferenceAttachments()
       environmentVariables:
         KEEPSAKE_REFERENCE_RENDER: "1"

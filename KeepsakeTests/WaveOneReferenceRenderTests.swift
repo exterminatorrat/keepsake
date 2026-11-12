@@ -18,20 +18,29 @@ final class WaveOneReferenceRenderTests: XCTestCase {
         let window = UIWindow(windowScene: scene)
         window.frame = scene.coordinateSpace.bounds
         window.overrideUserInterfaceStyle = .light
+        let host = ReferenceHostController()
+        window.rootViewController = host
+        window.makeKeyAndVisible()
         defer {
+            host.removeFixture()
             window.isHidden = true
             window.rootViewController = nil
             previousKeyWindow?.makeKey()
         }
 
         for (name, view) in fixtures {
-            let controller = UIHostingController(rootView: view)
-            window.rootViewController = controller
-            window.makeKeyAndVisible()
-            controller.view.setNeedsLayout()
-            controller.view.layoutIfNeeded()
-            await Task.yield()
-            controller.view.layoutIfNeeded()
+            let controller = ReferenceFixtureController(rootView: view)
+            host.show(controller)
+            let needsMap = ["G01", "G02", "G03", "M01", "Offline", "GroupError"].contains(name)
+            let readiness = ReferenceCaptureReadiness(
+                window: window, host: host, content: controller, needsMap: needsMap
+            )
+            let state = await readiness.wait(timeout: 12)
+            let record = XCTAttachment(data: try JSONEncoder().encode(state), uniformTypeIdentifier: "public.json")
+            record.name = "READINESS-\(name)"
+            record.lifetime = .keepAlways
+            add(record)
+            XCTAssertTrue(state.isReady, "Unsettled capture for \(name): \(state)")
             var drewHierarchy = false
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 drewHierarchy = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -41,6 +50,7 @@ final class WaveOneReferenceRenderTests: XCTestCase {
             attachment.name = "FIXTURE-\(name)-\(Int(window.bounds.width))x\(Int(window.bounds.height))pt"
             attachment.lifetime = .keepAlways
             add(attachment)
+            host.removeFixture()
         }
     }
 

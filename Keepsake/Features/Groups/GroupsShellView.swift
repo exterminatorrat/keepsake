@@ -14,6 +14,8 @@ struct GroupsShellView: View {
     @State private var isConfirmingSignOut = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var pillWidth: CGFloat = 182
+    @ScaledMetric(relativeTo: .body) private var headerClearance: CGFloat = 96
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState private var isGroupPillFocused: Bool
 
     init(
@@ -171,56 +173,88 @@ struct GroupsShellView: View {
     }
 
     private func sheetScene(group: SoloGroup, offline: Bool) -> some View {
-        ZStack(alignment: .top) {
-            VStack(spacing: 0) {
-                GroupSheetView(
-                    group: group,
-                    isExpanded: navigation.detent == .expanded,
-                    isOffline: offline,
-                    onToggleExpanded: { navigation.toggleSheetDetent() },
-                    onShowMember: { navigation.showMemberCard() },
-                    onRetry: onRetry,
-                    onUnavailable: present
-                )
-                .accessibilityHidden(navigation.isSelectorOpen)
-                .overlay(alignment: .topTrailing) {
-                    if navigation.detent == .collapsed {
-                        VStack(spacing: 10) {
+        GeometryReader { geometry in
+            let pose: GroupSheetLayout.Pose = navigation.isSelectorOpen ? .selector
+                : navigation.detent == .expanded ? .expanded : .collapsed
+            let height = GroupSheetLayout.height(
+                in: geometry.size.height,
+                pose: pose,
+                accessibility: dynamicTypeSize.isAccessibilitySize,
+                headerClearance: headerClearance
+            )
+            let width = GroupSheetLayout.selectorWidth(
+                in: max(0, geometry.size.width - 2 * KeepsakeStyle.margin),
+                preferred: pillWidth,
+                accessibility: dynamicTypeSize.isAccessibilitySize
+            )
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    if navigation.isSelectorOpen {
+                        GroupMemberStrip(
+                            height: height,
+                            onShowMember: { navigation.showMemberCard() },
+                            onUnavailable: present
+                        )
+                        .accessibilityHidden(true)
+                        .overlay(alignment: .topTrailing) {
                             mapControl("Center on your location, not available yet", symbol: "location", feature: .recenterMap)
-                            mapControl("Map layers, not available yet", symbol: "square.3.layers.3d", feature: .mapLayers)
+                                .padding(.trailing, 16)
+                                .offset(y: -60)
+                                .accessibilityHidden(true)
                         }
-                        .padding(.trailing, 16)
-                        .offset(y: -116)
+                    } else {
+                        GroupSheetView(
+                            group: group,
+                            isExpanded: navigation.detent == .expanded,
+                            isOffline: offline,
+                            height: height,
+                            onToggleExpanded: { navigation.toggleSheetDetent() },
+                            onShowMember: { navigation.showMemberCard() },
+                            onRetry: onRetry,
+                            onUnavailable: present
+                        )
+                        .overlay(alignment: .topTrailing) {
+                            if navigation.detent == .collapsed {
+                                VStack(spacing: 10) {
+                                    mapControl("Center on your location, not available yet", symbol: "location", feature: .recenterMap)
+                                    mapControl("Map layers, not available yet", symbol: "square.3.layers.3d", feature: .mapLayers)
+                                }
+                                .padding(.trailing, 16)
+                                .offset(y: -116)
+                            }
+                        }
                     }
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-
-            if navigation.isSelectorOpen {
-                Color.black.opacity(0.0001)
-                    .contentShape(Rectangle())
-                    .onTapGesture { navigation.closeSelector() }
-                    .ignoresSafeArea()
-                    .accessibilityHidden(true)
-            }
-
-            VStack(spacing: 8) {
-                groupHeader(group: group)
 
                 if navigation.isSelectorOpen {
-                    GroupSelectorView(
-                        group: group,
-                        onSelectGroup: { navigation.closeSelector() },
-                        onCreateGroup: { present(.createAnotherGroup) },
-                        onJoinGroup: { present(.joinGroup) }
-                    )
-                    .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+                    Color.black.opacity(0.0001)
+                        .contentShape(Rectangle())
+                        .onTapGesture { navigation.closeSelector() }
+                        .ignoresSafeArea()
+                        .accessibilityHidden(true)
                 }
 
-                Spacer(minLength: 0)
+                VStack(spacing: 8) {
+                    groupHeader(group: group, width: width)
+
+                    if navigation.isSelectorOpen {
+                        GroupSelectorView(
+                            group: group,
+                            onSelectGroup: { navigation.closeSelector() },
+                            onCreateGroup: { present(.createAnotherGroup) },
+                            onJoinGroup: { present(.joinGroup) },
+                            width: width,
+                            maximumHeight: max(0, geometry.size.height - headerClearance - 16)
+                        )
+                        .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, KeepsakeStyle.margin)
+                .padding(.top, 10)
             }
-            .padding(.horizontal, KeepsakeStyle.margin)
-            .padding(.top, 10)
         }
     }
 
@@ -252,60 +286,76 @@ struct GroupsShellView: View {
         }
     }
 
-    private func groupHeader(group: SoloGroup) -> some View {
-        HStack(spacing: 10) {
-            Button {
-                navigation.showSettings()
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(KeepsakeStyle.ink)
-                    .frame(width: 48, height: 48)
-                    .background(KeepsakeStyle.surface, in: Circle())
-                    .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Settings")
-
-            Spacer(minLength: 8)
-
-            Button {
-                navigation.toggleSelector()
-            } label: {
-                HStack(spacing: 6) {
-                    Text(group.name)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    Image(systemName: "chevron.down")
-                        .font(.caption2.weight(.bold))
-                }
+    private func groupHeader(group: SoloGroup, width: CGFloat? = nil) -> some View {
+        let settings = Button {
+            navigation.showSettings()
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(KeepsakeStyle.ink)
-                .padding(.horizontal, 18)
-                .frame(minHeight: 44)
-                .frame(maxWidth: pillWidth)
-                .background(KeepsakeStyle.surface, in: Capsule())
+                .frame(width: 48, height: 48)
+                .background(KeepsakeStyle.surface, in: Circle())
                 .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(group.name), group")
-            .accessibilityHint("Shows group choices")
-            .accessibilityValue(navigation.isSelectorOpen ? "Open" : "Closed")
-            .accessibilityFocused($isGroupPillFocused)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Settings")
 
-            Spacer(minLength: 8)
-
-            Button {
-                present(.notifications)
-            } label: {
-                Image(systemName: "bell")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(KeepsakeStyle.ink)
-                    .frame(width: 48, height: 48)
-                    .background(KeepsakeStyle.surface, in: Circle())
-                    .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+        let pill = Button {
+            navigation.toggleSelector()
+        } label: {
+            HStack(spacing: 6) {
+                Text(group.name)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Image(systemName: navigation.isSelectorOpen ? "chevron.up" : "chevron.down")
+                    .font(.caption2.weight(.bold))
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Notifications, not available yet")
+            .foregroundStyle(KeepsakeStyle.ink)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 44)
+            .frame(maxWidth: width ?? pillWidth)
+            .background(KeepsakeStyle.surface, in: Capsule())
+            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(group.name), group")
+        .accessibilityHint("Shows group choices")
+        .accessibilityValue(navigation.isSelectorOpen ? "Open" : "Closed")
+        .accessibilityFocused($isGroupPillFocused)
+
+        let notifications = Button {
+            present(.notifications)
+        } label: {
+            Image(systemName: "bell")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(KeepsakeStyle.ink)
+                .frame(width: 48, height: 48)
+                .background(KeepsakeStyle.surface, in: Circle())
+                .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Notifications, not available yet")
+
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 8) {
+                    HStack {
+                        settings
+                        Spacer(minLength: 8)
+                        notifications
+                    }
+                    pill
+                }
+            } else {
+                HStack(spacing: 10) {
+                    settings
+                    Spacer(minLength: 8)
+                    pill
+                    Spacer(minLength: 8)
+                    notifications
+                }
+            }
         }
     }
 

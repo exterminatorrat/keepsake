@@ -6,34 +6,58 @@ struct GroupSelectorView: View {
     let onSelectGroup: () -> Void
     let onCreateGroup: () -> Void
     let onJoinGroup: () -> Void
-
-    @ScaledMetric(relativeTo: .body) private var width: CGFloat = 182
+    let width: CGFloat
+    let maximumHeight: CGFloat
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var contentHeight: CGFloat = 0
 
     var body: some View {
+        ScrollView {
+            menuContent
+                .onGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.size.height
+                } action: { height in
+                    contentHeight = height
+                }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: width)
+        .frame(height: min(maximumHeight, contentHeight > 0 ? contentHeight : maximumHeight))
+        .background(KeepsakeStyle.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(KeepsakeStyle.separator, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 24, y: 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityAction(.escape, onSelectGroup)
+    }
+
+    private var menuContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: onSelectGroup) {
-                HStack(spacing: 12) {
-                    GroupMonogram(name: group.name, size: 34)
-
+                HStack(spacing: 6) {
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        GroupMonogram(name: group.name, size: 28)
+                    }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.name)
-                            .font(.subheadline.weight(.semibold))
+                            .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.semibold) : .caption.weight(.semibold))
                             .foregroundStyle(KeepsakeStyle.ink)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text("1 member")
                             .font(.caption)
                             .foregroundStyle(KeepsakeStyle.secondaryInk)
-                            .lineLimit(1)
                     }
-
-                    Spacer(minLength: 8)
-
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "checkmark")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(KeepsakeStyle.accent)
+                        .frame(width: 14)
                         .accessibilityHidden(true)
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 10)
                 .frame(minHeight: 60)
                 .contentShape(Rectangle())
             }
@@ -46,15 +70,6 @@ struct GroupSelectorView: View {
             GroupSelectorAction(title: "Create group", symbol: "plus", action: onCreateGroup)
             GroupSelectorAction(title: "Join group", symbol: "person.badge.plus", action: onJoinGroup)
         }
-        .frame(maxWidth: width)
-        .background(KeepsakeStyle.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(KeepsakeStyle.separator, lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 24, y: 12)
-        .accessibilityElement(children: .contain)
-        .accessibilityAction(.escape, onSelectGroup)
     }
 }
 

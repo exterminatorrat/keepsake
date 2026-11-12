@@ -1,0 +1,246 @@
+import MapKit
+import SwiftUI
+import UIKit
+
+struct ReferenceReadiness: Codable, Equatable, Sendable {
+    enum MapState: String, Codable, Sendable {
+        case notRequired, pending, fullyRendered, unavailable, unobservable
+    }
+
+    var appeared = false
+    var stableLayoutFrames = 0
+    var map: MapState
+    var deadlineExpired = false
+    var detail: String?
+
+    var isReady: Bool {
+        appeared && stableLayoutFrames >= 2 && !deadlineExpired
+            && (map == .notRequired || map == .fullyRendered)
+    }
+
+    mutating func recordLayout(stable: Bool) {
+        stableLayoutFrames = stable ? stableLayoutFrames + 1 : 0
+    }
+
+    mutating func renderingStarted() {
+        guard map != .unavailable, map != .unobservable else { return }
+        map = .pending
+        stableLayoutFrames = 0
+    }
+
+    mutating func renderingFinished(fullyRendered: Bool) {
+        guard map != .unavailable, map != .unobservable else { return }
+        map = fullyRendered ? .fullyRendered : .pending
+        stableLayoutFrames = 0
+    }
+}
+
+@MainActor
+final class ReferenceHostController: UIViewController {
+    private(set) var appeared = false
+
+    override var shouldAutomaticallyForwardAppearanceMethods: Bool { false }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        appeared = true
+    }
+
+    func show(_ child: UIViewController) {
+        addChild(child)
+        child.beginAppearanceTransition(true, animated: false)
+        child.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(child.view)
+        NSLayoutConstraint.activate([
+            child.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            child.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            child.view.topAnchor.constraint(equalTo: view.topAnchor),
+            child.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        child.didMove(toParent: self)
+        view.layoutIfNeeded()
+        child.endAppearanceTransition()
+    }
+
+    func removeFixture() {
+        for child in children {
+            child.willMove(toParent: nil)
+            child.beginAppearanceTransition(false, animated: false)
+            child.view.removeFromSuperview()
+            child.endAppearanceTransition()
+            child.removeFromParent()
+        }
+    }
+}
+
+@MainActor
+final class ReferenceFixtureController: UIHostingController<AnyView> {
+    private(set) var appeared = false
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        appeared = true
+    }
+}
+
+@MainActor
+final class ReferenceCaptureReadiness: NSObject {
+    private let window: UIWindow
+    private let host: ReferenceHostController
+    private let content: ReferenceFixtureController
+    private var state: ReferenceReadiness
+    private var previousGeometry: [CGFloat]?
+    private var mapView: MKMapView?
+    private var mapObserver: ReferenceMapObserver?
+    private var displayLink: CADisplayLink?
+    private var deadline: Timer?
+    private var continuation: CheckedContinuation<ReferenceReadiness, Never>?
+
+    init(window: UIWindow, host: ReferenceHostController, content: ReferenceFixtureController, needsMap: Bool) {
+        self.window = window
+        self.host = host
+        self.content = content
+        state = ReferenceReadiness(map: needsMap ? .pending : .notRequired)
+    }
+
+    func wait(timeout: TimeInterval) async -> ReferenceReadiness {
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+            let link = CADisplayLink(target: self, selector: #selector(frame))
+            displayLink = link
+            link.add(to: .main, forMode: .common)
+            deadline = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
+                Task { @MainActor in self?.expire() }
+            }
+            frame()
+        }
+    }
+
+    func stop() {
+        displayLink?.invalidate()
+        displayLink = nil
+        deadline?.invalidate()
+        deadline = nil
+        if let mapView, let mapObserver, mapView.delegate === mapObserver {
+            mapView.delegate = mapObserver.downstream
+        }
+        mapObserver = nil
+        mapView = nil
+    }
+
+    @objc private func frame() {
+        guard continuation != nil else { return }
+        window.layoutIfNeeded()
+        content.view.layoutIfNeeded()
+        state.appeared = host.appeared && content.appeared
+            && content.view.window === window && window.isKeyWindow
+
+        if state.map != .notRequired, mapObserver == nil {
+            let maps = mapViews(in: content.view)
+            if maps.count == 1, let map = maps.first {
+                let observer = ReferenceMapObserver(downstream: map.delegate) { [weak self] event in
+                    guard let self else { return }
+                    switch event {
+                    case .started: state.renderingStarted()
+                    case .finished(let fullyRendered): state.renderingFinished(fullyRendered: fullyRendered)
+                    case .failed(let detail):
+                        state.map = .unavailable
+                        state.detail = detail
+                    }
+                }
+                mapView = map
+                mapObserver = observer
+                map.delegate = observer
+            } else if maps.count > 1 {
+                state.map = .unobservable
+                state.detail = "Expected one public MKMapView, found \(maps.count)"
+            }
+        }
+        if let mapView, let mapObserver, mapView.delegate !== mapObserver {
+            state.map = .unobservable
+            state.detail = "Map delegate changed during capture"
+        }
+
+        let bounds = content.view.bounds
+        let insets = content.view.safeAreaInsets
+        let geometry = [bounds.width, bounds.height, insets.top, insets.bottom,
+                        mapView?.bounds.width ?? 0, mapView?.bounds.height ?? 0]
+        let mapHasBounds = state.map == .notRequired
+            || (mapView?.bounds.width ?? 0) > 0 && (mapView?.bounds.height ?? 0) > 0
+        let valid = state.appeared && bounds.width > 0 && bounds.height > 0 && mapHasBounds
+        state.recordLayout(stable: valid && previousGeometry == geometry)
+        previousGeometry = valid ? geometry : nil
+        if state.isReady || state.map == .unavailable || state.map == .unobservable {
+            finish()
+        }
+    }
+
+    private func expire() {
+        guard continuation != nil else { return }
+        state.deadlineExpired = true
+        if state.map == .pending, mapView == nil {
+            state.map = .unobservable
+            state.detail = "No public MKMapView available before capture deadline"
+        }
+        finish()
+    }
+
+    private func finish() {
+        let pending = continuation
+        continuation = nil
+        stop()
+        pending?.resume(returning: state)
+    }
+
+    private func mapViews(in view: UIView) -> [MKMapView] {
+        if let map = view as? MKMapView { return [map] }
+        return view.subviews.flatMap { mapViews(in: $0) }
+    }
+}
+
+@MainActor
+private final class ReferenceMapObserver: NSObject, MKMapViewDelegate {
+    enum Event {
+        case started
+        case finished(Bool)
+        case failed(String)
+    }
+
+    nonisolated(unsafe) let downstream: (any MKMapViewDelegate)?
+    private let receive: @MainActor (Event) -> Void
+
+    init(downstream: (any MKMapViewDelegate)?, receive: @escaping @MainActor (Event) -> Void) {
+        self.downstream = downstream
+        self.receive = receive
+    }
+
+    override nonisolated func responds(to selector: Selector!) -> Bool {
+        super.responds(to: selector) || downstream?.responds(to: selector) == true
+    }
+
+    override nonisolated func forwardingTarget(for selector: Selector!) -> Any? {
+        if downstream?.responds(to: selector) == true { return downstream }
+        return super.forwardingTarget(for: selector)
+    }
+
+    func mapViewWillStartLoadingMap(_ mapView: MKMapView) {
+        receive(.started)
+        downstream?.mapViewWillStartLoadingMap?(mapView)
+    }
+
+    func mapViewWillStartRenderingMap(_ mapView: MKMapView) {
+        receive(.started)
+        downstream?.mapViewWillStartRenderingMap?(mapView)
+    }
+
+    func mapViewDidFinishRenderingMap(_ mapView: MKMapView, fullyRendered: Bool) {
+        receive(.finished(fullyRendered))
+        downstream?.mapViewDidFinishRenderingMap?(mapView, fullyRendered: fullyRendered)
+    }
+
+    func mapViewDidFailLoadingMap(_ mapView: MKMapView, withError error: any Error) {
+        let failure = error as NSError
+        receive(.failed("\(failure.domain):\(failure.code)"))
+        downstream?.mapViewDidFailLoadingMap?(mapView, withError: error)
+    }
+}

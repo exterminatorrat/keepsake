@@ -12,6 +12,9 @@
          <TestableReference skipped="NO" parallelizable="NO">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4383F5921A48279815A21CBB" BuildableName="KeepsakeTests.xctest" BlueprintName="KeepsakeTests" ReferencedContainer="container:Keepsake.xcodeproj"/>
             <SelectedTests>
+               <Test Identifier="GroupSheetLayoutTests"/>
+               <Test Identifier="ReferenceReadinessTests"/>
+               <Test Identifier="GroupsNavigationTests"/>
                <Test Identifier="WaveOneReferenceRenderTests/testScreenReferenceAttachments()"/>
             </SelectedTests>
          </TestableReference>
