@@ -14,13 +14,15 @@ struct AuthPresentationTests {
     func unavailableProvidersCannotAdvanceTheLiveRouter(provider: AuthEntryProvider) {
         var navigation = AuthPresentationNavigation(state: AuthScreenState(), startsAtWelcome: true)
         #expect(!provider.supportsEmailOTP)
-        #expect(!navigation.choose(provider))
+        let didChoose = navigation.choose(provider)
+        #expect(!didChoose)
         #expect(navigation.screen == .welcome)
     }
 
     @Test func emailSelectionOnlyOpensEntry() {
         var navigation = AuthPresentationNavigation(state: AuthScreenState(), startsAtWelcome: true)
-        #expect(navigation.choose(.email))
+        let didChoose = navigation.choose(.email)
+        #expect(didChoose)
         #expect(navigation.screen == .entry)
     }
 
