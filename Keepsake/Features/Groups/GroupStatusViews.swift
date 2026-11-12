@@ -29,53 +29,58 @@ struct GroupFailureView: View {
     let onRetry: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        Group {
             if isOffline {
-                GroupMapBackdrop(isDimmed: true)
-                    .ignoresSafeArea()
+                GroupMapBackdrop(isDimmed: true) {
+                    failureCard
+                }
             } else {
-                KeepsakeStyle.canvas
-                    .ignoresSafeArea()
-            }
-
-            VStack(spacing: 12) {
-                Image(systemName: isOffline ? "wifi.slash" : "exclamationmark.triangle")
-                    .font(.system(size: 28, weight: .medium))
-                    .foregroundStyle(KeepsakeStyle.secondaryInk)
-                    .accessibilityHidden(true)
-
-                Text(isOffline ? "You’re offline" : "Something went wrong")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(KeepsakeStyle.ink)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(KeepsakeStyle.secondaryInk)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                GroupPrimaryButton(title: "Retry", action: onRetry)
-                    .padding(.top, 6)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 28)
-            .frame(maxWidth: .infinity)
-            .background(
-                KeepsakeStyle.surface,
-                in: UnevenRoundedRectangle(
-                    topLeadingRadius: KeepsakeStyle.sheetRadius,
-                    topTrailingRadius: KeepsakeStyle.sheetRadius,
-                    style: .continuous
-                )
-            )
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(KeepsakeStyle.separator)
-                    .frame(height: 1)
+                ZStack(alignment: .bottom) {
+                    KeepsakeStyle.canvas.ignoresSafeArea()
+                    failureCard
+                }
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var failureCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: isOffline ? "wifi.slash" : "exclamationmark.triangle")
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(KeepsakeStyle.secondaryInk)
+                .accessibilityHidden(true)
+
+            Text(isOffline ? "You’re offline" : "Something went wrong")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(KeepsakeStyle.ink)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(KeepsakeStyle.secondaryInk)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            GroupPrimaryButton(title: "Retry", action: onRetry)
+                .padding(.top, 6)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+        .background(
+            KeepsakeStyle.surface,
+            in: UnevenRoundedRectangle(
+                topLeadingRadius: KeepsakeStyle.sheetRadius,
+                topTrailingRadius: KeepsakeStyle.sheetRadius,
+                style: .continuous
+            )
+        )
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(KeepsakeStyle.separator)
+                .frame(height: 1)
+        }
     }
 }
 

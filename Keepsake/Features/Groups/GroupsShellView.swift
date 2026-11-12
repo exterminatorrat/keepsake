@@ -136,39 +136,35 @@ struct GroupsShellView: View {
         }
     }
 
+    @ViewBuilder
     private func groupSurface(group: SoloGroup, offline: Bool) -> some View {
-        ZStack {
-            GroupMapBackdrop(isDimmed: offline || navigation.presentation == .groupExpanded)
-                .ignoresSafeArea()
-
-            switch navigation.presentation {
-            case .groupCollapsed, .groupExpanded:
-                sheetScene(group: group, offline: offline)
-            case .memberCollapsed, .memberExpanded:
-                memberScene(group: group)
-            case .settings:
-                SettingsView(
-                    account: account,
-                    group: group,
-                    onShowGroup: { navigation.showGroupSummary() },
-                    onShowAccount: { navigation.showAccount() },
-                    onBack: { navigation.goBack() },
-                    onUnavailable: present
-                )
-            case .account:
-                AccountView(
-                    account: account,
-                    onBack: { navigation.goBack() },
-                    onSignOut: { isConfirmingSignOut = true },
-                    onUnavailable: present
-                )
-            case .groupSummary:
-                GroupSummaryView(
-                    group: group,
-                    onBack: { navigation.goBack() },
-                    onUnavailable: present
-                )
-            }
+        switch navigation.presentation {
+        case .groupCollapsed, .groupExpanded:
+            sheetScene(group: group, offline: offline)
+        case .memberCollapsed, .memberExpanded:
+            memberScene(group: group)
+        case .settings:
+            SettingsView(
+                account: account,
+                group: group,
+                onShowGroup: { navigation.showGroupSummary() },
+                onShowAccount: { navigation.showAccount() },
+                onBack: { navigation.goBack() },
+                onUnavailable: present
+            )
+        case .account:
+            AccountView(
+                account: account,
+                onBack: { navigation.goBack() },
+                onSignOut: { isConfirmingSignOut = true },
+                onUnavailable: present
+            )
+        case .groupSummary:
+            GroupSummaryView(
+                group: group,
+                onBack: { navigation.goBack() },
+                onUnavailable: present
+            )
         }
     }
 
@@ -187,23 +183,34 @@ struct GroupsShellView: View {
                 preferred: pillWidth,
                 accessibility: dynamicTypeSize.isAccessibilitySize
             )
-            ZStack(alignment: .top) {
+            GroupMapBackdrop(isDimmed: offline || navigation.detent == .expanded) {
                 VStack(spacing: 0) {
-                    Spacer(minLength: 0)
                     if navigation.isSelectorOpen {
+                        HStack {
+                            Spacer(minLength: 0)
+                            mapControl("Center on your location, not available yet", symbol: "location", feature: .recenterMap)
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 12)
+                        .accessibilityHidden(true)
                         GroupMemberStrip(
                             height: height,
                             onShowMember: { navigation.showMemberCard() },
                             onUnavailable: present
                         )
                         .accessibilityHidden(true)
-                        .overlay(alignment: .topTrailing) {
-                            mapControl("Center on your location, not available yet", symbol: "location", feature: .recenterMap)
-                                .padding(.trailing, 16)
-                                .offset(y: -60)
-                                .accessibilityHidden(true)
-                        }
                     } else {
+                        if navigation.detent == .collapsed {
+                            HStack {
+                                Spacer(minLength: 0)
+                                VStack(spacing: 10) {
+                                    mapControl("Center on your location, not available yet", symbol: "location", feature: .recenterMap)
+                                    mapControl("Map layers, not available yet", symbol: "square.3.layers.3d", feature: .mapLayers)
+                                }
+                            }
+                            .padding(.trailing, 16)
+                            .padding(.bottom, 10)
+                        }
                         GroupSheetView(
                             group: group,
                             isExpanded: navigation.detent == .expanded,
@@ -214,52 +221,45 @@ struct GroupsShellView: View {
                             onRetry: onRetry,
                             onUnavailable: present
                         )
-                        .overlay(alignment: .topTrailing) {
-                            if navigation.detent == .collapsed {
-                                VStack(spacing: 10) {
-                                    mapControl("Center on your location, not available yet", symbol: "location", feature: .recenterMap)
-                                    mapControl("Map layers, not available yet", symbol: "square.3.layers.3d", feature: .mapLayers)
-                                }
-                                .padding(.trailing, 16)
-                                .offset(y: -116)
-                            }
-                        }
                     }
                 }
-
-                if navigation.isSelectorOpen {
-                    Color.black.opacity(0.0001)
-                        .contentShape(Rectangle())
-                        .onTapGesture { navigation.closeSelector() }
-                        .ignoresSafeArea()
-                        .accessibilityHidden(true)
-                }
-
-                VStack(spacing: 8) {
-                    groupHeader(group: group, width: width)
-
+            }
+            .overlay(alignment: .top) {
+                ZStack(alignment: .top) {
                     if navigation.isSelectorOpen {
-                        GroupSelectorView(
-                            group: group,
-                            onSelectGroup: { navigation.closeSelector() },
-                            onCreateGroup: { present(.createAnotherGroup) },
-                            onJoinGroup: { present(.joinGroup) },
-                            width: width,
-                            maximumHeight: max(0, geometry.size.height - headerClearance - 16)
-                        )
-                        .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+                        Color.black.opacity(0.0001)
+                            .contentShape(Rectangle())
+                            .onTapGesture { navigation.closeSelector() }
+                            .ignoresSafeArea()
+                            .accessibilityHidden(true)
                     }
 
-                    Spacer(minLength: 0)
+                    VStack(spacing: 8) {
+                        groupHeader(group: group, width: width)
+
+                        if navigation.isSelectorOpen {
+                            GroupSelectorView(
+                                group: group,
+                                onSelectGroup: { navigation.closeSelector() },
+                                onCreateGroup: { present(.createAnotherGroup) },
+                                onJoinGroup: { present(.joinGroup) },
+                                width: width,
+                                maximumHeight: max(0, geometry.size.height - headerClearance - 16)
+                            )
+                            .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, KeepsakeStyle.margin)
+                    .padding(.top, 10)
                 }
-                .padding(.horizontal, KeepsakeStyle.margin)
-                .padding(.top, 10)
             }
         }
     }
 
     private func memberScene(group: SoloGroup) -> some View {
-        ZStack(alignment: .top) {
+        Group {
             if navigation.presentation == .memberExpanded {
                 GroupMemberDetailView(
                     group: group,
@@ -267,21 +267,21 @@ struct GroupsShellView: View {
                     onUnavailable: present
                 )
             } else {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
+                GroupMapBackdrop {
                     GroupMemberCardView(
                         group: group,
                         onExpand: { navigation.expandMemberCard() },
                         onDismiss: { navigation.goBack() }
                     )
                 }
-
-                VStack(spacing: 8) {
-                    groupHeader(group: group)
-                    Spacer(minLength: 0)
+                .overlay(alignment: .top) {
+                    VStack(spacing: 8) {
+                        groupHeader(group: group)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, KeepsakeStyle.margin)
+                    .padding(.top, 10)
                 }
-                .padding(.horizontal, KeepsakeStyle.margin)
-                .padding(.top, 10)
             }
         }
     }

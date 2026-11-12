@@ -2,25 +2,31 @@ import MapKit
 import SwiftUI
 
 @MainActor
-struct GroupMapBackdrop: View {
-    var isDimmed = false
+struct GroupMapBackdrop<BottomContent: View>: View {
+    let isDimmed: Bool
+    private let bottomContent: BottomContent
 
-    private static let neutralRegion = MKCoordinateRegion(
+    init(isDimmed: Bool = false, @ViewBuilder bottomContent: () -> BottomContent) {
+        self.isDimmed = isDimmed
+        self.bottomContent = bottomContent()
+    }
+
+    private let neutralRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 31.20, longitude: 121.43),
         span: MKCoordinateSpan(latitudeDelta: 0.025, longitudeDelta: 0.025)
     )
 
     var body: some View {
-        Map(initialPosition: .region(Self.neutralRegion), interactionModes: [])
-            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+        Map(initialPosition: .region(neutralRegion), interactionModes: [])
+            .mapStyle(.standard(
+                elevation: .flat,
+                emphasis: isDimmed ? .muted : .automatic,
+                pointsOfInterest: .excludingAll
+            ))
             .mapControls {}
-            .grayscale(isDimmed ? 0.85 : 0)
-            .overlay {
-                KeepsakeStyle.ink
-                    .opacity(isDimmed ? 0.22 : 0)
-                    .allowsHitTesting(false)
+            .ignoresSafeArea(.container, edges: .top)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                bottomContent
             }
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 }
