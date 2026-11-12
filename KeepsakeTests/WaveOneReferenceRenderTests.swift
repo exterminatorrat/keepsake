@@ -28,12 +28,18 @@ final class WaveOneReferenceRenderTests: XCTestCase {
             previousKeyWindow?.makeKey()
         }
 
+        let expectedMemberIDs = [
+            "MemberPager-0": UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            "MemberPager-1": UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+            "MemberPager-2": UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
+        ]
         for (name, view) in fixtures {
             let controller = ReferenceFixtureController(rootView: view)
             host.show(controller)
             let needsMap = ["G01", "G02", "G03", "M01", "Offline", "GroupError"].contains(name)
             let readiness = ReferenceCaptureReadiness(
-                window: window, host: host, content: controller, needsMap: needsMap
+                window: window, host: host, content: controller, needsMap: needsMap,
+                expectedMemberID: expectedMemberIDs[name]
             )
             let state = await readiness.wait(timeout: 12)
             let record = XCTAttachment(data: try JSONEncoder().encode(state), uniformTypeIdentifier: "public.json")
@@ -41,6 +47,10 @@ final class WaveOneReferenceRenderTests: XCTestCase {
             record.lifetime = .keepAlways
             add(record)
             XCTAssertTrue(state.isReady, "Unsettled capture for \(name): \(state)")
+            if let memberViewport = state.memberViewport {
+                XCTAssertEqual(memberViewport.centeredID, memberViewport.expectedID, "Wrong visible member for \(name)")
+                XCTAssertTrue(memberViewport.isReady, "Member is not fully visible and centered for \(name)")
+            }
             var drewHierarchy = false
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 drewHierarchy = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)

@@ -1,6 +1,36 @@
 import MapKit
 import SwiftUI
 import UIKit
+@testable import Keepsake
+
+struct ReferenceMemberViewport: Codable, Equatable, Sendable {
+    struct Card: Codable, Equatable, Sendable {
+        let id: UUID
+        let frame: CGRect
+    }
+
+    let expectedID: UUID
+    let viewport: CGRect
+    let cards: [Card]
+
+    var centeredID: UUID? {
+        guard Set(cards.map(\.id)).count == cards.count,
+              ([viewport] + cards.map(\.frame)).allSatisfy({ frame in
+                  frame.width > 0 && frame.height > 0
+                      && [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
+              }) else { return nil }
+        let centered = cards.filter {
+            $0.frame.intersects(viewport) && abs($0.frame.midX - viewport.midX) <= 1
+        }
+        return centered.count == 1 ? centered.first?.id : nil
+    }
+
+    var isReady: Bool {
+        guard centeredID == expectedID, let card = cards.first(where: { $0.id == expectedID }) else { return false }
+        let visible = card.frame.intersection(viewport)
+        return visible.width >= card.frame.width - 1 && visible.height >= card.frame.height - 1
+    }
+}
 
 struct ReferenceReadiness: Codable, Equatable, Sendable {
     enum MapState: String, Codable, Sendable {
@@ -12,14 +42,21 @@ struct ReferenceReadiness: Codable, Equatable, Sendable {
     var map: MapState
     var deadlineExpired = false
     var detail: String?
+    var memberViewport: ReferenceMemberViewport? = nil
 
     var isReady: Bool {
         appeared && stableLayoutFrames >= 2 && !deadlineExpired
             && (map == .notRequired || map == .fullyRendered)
+            && (memberViewport?.isReady ?? true)
     }
 
-    mutating func recordLayout(stable: Bool) {
-        stableLayoutFrames = stable ? stableLayoutFrames + 1 : 0
+    mutating func recordLayout(stable: Bool, memberViewport: ReferenceMemberViewport? = nil) {
+        let observed = memberViewport ?? self.memberViewport.map {
+            ReferenceMemberViewport(expectedID: $0.expectedID, viewport: .zero, cards: [])
+        }
+        let memberStable = self.memberViewport == observed
+        self.memberViewport = observed
+        stableLayoutFrames = stable && memberStable ? stableLayoutFrames + 1 : 0
     }
 
     mutating func renderingStarted() {
@@ -88,6 +125,7 @@ final class ReferenceCaptureReadiness: NSObject {
     private let window: UIWindow
     private let host: ReferenceHostController
     private let content: ReferenceFixtureController
+    private let expectedMemberID: UUID?
     private var state: ReferenceReadiness
     private var previousGeometry: [CGFloat]?
     private var mapView: MKMapView?
@@ -96,11 +134,13 @@ final class ReferenceCaptureReadiness: NSObject {
     private var deadline: Timer?
     private var continuation: CheckedContinuation<ReferenceReadiness, Never>?
 
-    init(window: UIWindow, host: ReferenceHostController, content: ReferenceFixtureController, needsMap: Bool) {
+    init(window: UIWindow, host: ReferenceHostController, content: ReferenceFixtureController, needsMap: Bool, expectedMemberID: UUID? = nil) {
         self.window = window
         self.host = host
         self.content = content
+        self.expectedMemberID = expectedMemberID
         state = ReferenceReadiness(map: needsMap ? .pending : .notRequired)
+        state.memberViewport = expectedMemberID.map { ReferenceMemberViewport(expectedID: $0, viewport: .zero, cards: []) }
     }
 
     func wait(timeout: TimeInterval) async -> ReferenceReadiness {
@@ -168,7 +208,20 @@ final class ReferenceCaptureReadiness: NSObject {
         let mapHasBounds = state.map == .notRequired
             || (mapView?.bounds.width ?? 0) > 0 && (mapView?.bounds.height ?? 0) > 0
         let valid = state.appeared && bounds.width > 0 && bounds.height > 0 && mapHasBounds
-        state.recordLayout(stable: valid && previousGeometry == geometry)
+        var memberViewport = state.memberViewport
+        #if DEBUG
+        if let expectedID = expectedMemberID {
+            let probes = memberProbes(in: content.view).filter { $0.window === window }
+            let viewports = probes.filter { $0.memberID == nil }
+            let viewport = viewports.count == 1 ? viewports[0].convert(viewports[0].bounds, to: window) : .zero
+            let cards = probes.compactMap { probe -> ReferenceMemberViewport.Card? in
+                guard let id = probe.memberID else { return nil }
+                return .init(id: id.rawValue, frame: probe.convert(probe.bounds, to: window))
+            }.sorted { $0.id.uuidString < $1.id.uuidString }
+            memberViewport = ReferenceMemberViewport(expectedID: expectedID, viewport: viewport, cards: cards)
+        }
+        #endif
+        state.recordLayout(stable: valid && previousGeometry == geometry, memberViewport: memberViewport)
         previousGeometry = valid ? geometry : nil
         if state.isReady || state.map == .unavailable || state.map == .unobservable {
             finish()
@@ -196,6 +249,13 @@ final class ReferenceCaptureReadiness: NSObject {
         if let map = view as? MKMapView { return [map] }
         return view.subviews.flatMap { mapViews(in: $0) }
     }
+
+    #if DEBUG
+    private func memberProbes(in view: UIView) -> [GroupMemberLayoutProbeView] {
+        if let probe = view as? GroupMemberLayoutProbeView { return [probe] }
+        return view.subviews.flatMap { memberProbes(in: $0) }
+    }
+    #endif
 }
 
 @MainActor

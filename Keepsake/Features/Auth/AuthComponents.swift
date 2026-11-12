@@ -26,16 +26,21 @@ struct AuthBoardButton: View {
                     .multilineTextAlignment(.center)
             }
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isPrimary ? Color.white : AuthBoardStyle.ink)
+            .foregroundStyle(isEnabled ? (isPrimary ? Color.white : AuthBoardStyle.ink) : AuthBoardStyle.muted)
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity, minHeight: 50)
-            .background(isPrimary ? AuthBoardStyle.ink : AuthBoardStyle.field, in: Capsule())
-            .opacity(isEnabled ? 1 : 0.45)
+            .background(isEnabled && isPrimary ? AuthBoardStyle.ink : AuthBoardStyle.field, in: Capsule())
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AuthBoardButtonStyle())
         .disabled(!isEnabled)
+    }
+}
+
+private struct AuthBoardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.85 : 1)
     }
 }
 

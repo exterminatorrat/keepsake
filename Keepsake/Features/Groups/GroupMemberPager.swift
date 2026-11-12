@@ -1,4 +1,7 @@
 import SwiftUI
+#if DEBUG
+import UIKit
+#endif
 
 @MainActor
 struct GroupMemberPager: View {
@@ -21,7 +24,9 @@ struct GroupMemberPager: View {
                         ForEach(members) { member in
                             card(member)
                                 .frame(width: GroupMemberLayout.cardWidth(in: availableWidth))
-                                .id(member.id)
+                                #if DEBUG
+                                .background { GroupMemberLayoutProbe(memberID: member.id) }
+                                #endif
                                 .accessibilityHidden(member.id != selection)
                         }
                     }
@@ -33,6 +38,9 @@ struct GroupMemberPager: View {
                 .scrollIndicators(.hidden)
                 .scrollClipDisabled()
                 .fixedSize(horizontal: false, vertical: true)
+                #if DEBUG
+                .background { GroupMemberLayoutProbe(memberID: nil) }
+                #endif
                 pagination
             }
         }
@@ -99,6 +107,28 @@ struct GroupMemberPager: View {
 }
 
 #if DEBUG
+@MainActor
+final class GroupMemberLayoutProbeView: UIView {
+    var memberID: AccountID? = nil
+}
+
+@MainActor
+private struct GroupMemberLayoutProbe: UIViewRepresentable {
+    let memberID: AccountID?
+
+    func makeUIView(context: Context) -> GroupMemberLayoutProbeView {
+        let view = GroupMemberLayoutProbeView()
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ uiView: GroupMemberLayoutProbeView, context: Context) {
+        uiView.memberID = memberID
+    }
+}
+
 @MainActor
 struct GroupMemberPagerPreview: View {
     private static let account = AccountIdentity(

@@ -209,7 +209,7 @@ struct AuthOnboardingView: View {
                     .frame(maxWidth: 480)
                     .frame(maxWidth: .infinity)
                     .background {
-                        LinearGradient(colors: [AuthBoardStyle.canvas, AuthBoardStyle.canvas.opacity(0.95), AuthBoardStyle.canvas.opacity(0)], startPoint: .top, endPoint: .bottom)
+                        LinearGradient(colors: [AuthBoardStyle.canvas, AuthBoardStyle.canvas.opacity(0.95), AuthBoardStyle.canvas.opacity(0.95)], startPoint: .top, endPoint: .bottom)
                     }
                 }
                 AuthBoardButton(title: invitationName == nil ? "Go to Groups" : "Go to Group", action: onContinue)
