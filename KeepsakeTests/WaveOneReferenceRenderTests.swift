@@ -64,6 +64,130 @@ final class WaveOneReferenceRenderTests: XCTestCase {
         }
     }
 
+    func testMemberPagerBindingDiagnostics() async throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KEEPSAKE_REFERENCE_RENDER"] == "1",
+            "Manual reference scheme only; requires its separate native diagnostic scope."
+        )
+        #if DEBUG
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+        XCTAssertEqual(scenes.count, 1)
+        let scene = try XCTUnwrap(scenes.count == 1 ? scenes.first : nil)
+        let you = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let maya = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+        let cases: [(name: String, root: Bool, external: Bool)] = [
+            ("PG-A-contained-initial", false, false),
+            ("PG-B-root-initial", true, false),
+            ("PG-C-contained-external", false, true),
+            ("PG-D-root-external", true, true)
+        ]
+        for item in cases {
+            let previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
+            let window = UIWindow(windowScene: scene)
+            window.frame = scene.coordinateSpace.bounds
+            window.overrideUserInterfaceStyle = .light
+            let control = PagerBindingDiagnosticControl()
+            let controller = ReferenceFixtureController(rootView: AnyView(
+                GroupMemberPagerPreview(index: item.external ? 0 : 1, onSelectionAvailable: { binding in
+                    control.binding = binding
+                    control.bindingExportCount += 1
+                })
+            ))
+            let host: ReferenceHostController? = item.root ? nil : ReferenceHostController()
+            if let host {
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                host.show(controller)
+            } else {
+                window.rootViewController = controller
+                window.makeKeyAndVisible()
+            }
+            defer {
+                control.binding = nil
+                host?.removeFixture()
+                window.isHidden = true
+                window.rootViewController = nil
+                previousKeyWindow?.makeKey()
+            }
+
+            @MainActor func sample(expectedID: UUID) async -> ReferenceReadiness {
+                let readiness = ReferenceCaptureReadiness(
+                    window: window, host: host, content: controller, needsMap: false,
+                    expectedMemberID: expectedID, observesMemberScroll: true
+                )
+                return await readiness.wait(timeout: 12)
+            }
+
+            @MainActor func retain(name: String, intendedID: UUID, state: ReferenceReadiness, sourcePhase: String, attempted: Bool) throws -> Bool {
+                var drewHierarchy = false
+                let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                    drewHierarchy = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                }
+                let imageAttachment = XCTAttachment(image: image)
+                imageAttachment.name = "FIXTURE-\(name)-\(Int(window.bounds.width))x\(Int(window.bounds.height))pt"
+                imageAttachment.lifetime = .keepAlways
+                add(imageAttachment)
+                let record = PagerBindingDiagnosticRecord(
+                    caseName: item.name, hosting: item.root ? "root" : "contained", phase: name,
+                    intendedMemberID: intendedID, readinessSourcePhase: sourcePhase, attempted: attempted,
+                    selectedMemberID: control.binding?.wrappedValue?.rawValue,
+                    bindingAvailable: control.binding != nil, hierarchyRendered: drewHierarchy,
+                    bindingExportCount: control.bindingExportCount, externalWriteCount: control.externalWriteCount,
+                    readiness: state
+                )
+                let encoder = JSONEncoder()
+                encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "Infinity", negativeInfinity: "-Infinity", nan: "NaN")
+                let dataAttachment = XCTAttachment(data: try encoder.encode(record), uniformTypeIdentifier: "public.json")
+                dataAttachment.name = "READINESS-\(name)"
+                dataAttachment.lifetime = .keepAlways
+                add(dataAttachment)
+                XCTAssertTrue(drewHierarchy, "The native hierarchy did not render for \(name)")
+                return drewHierarchy
+            }
+
+            let terminalName = item.name + "-terminal"
+            let terminal: ReferenceReadiness
+            let terminalSourcePhase: String
+            let terminalAttempted: Bool
+            if item.external {
+                let baselineName = item.name + "-baseline"
+                let baseline = await sample(expectedID: you)
+                let baselineRendered = try retain(name: baselineName, intendedID: you, state: baseline, sourcePhase: baselineName, attempted: true)
+                XCTAssertTrue(baseline.isReady, "Unready You baseline for \(item.name): \(baseline)")
+                XCTAssertEqual(control.binding?.wrappedValue?.rawValue, you, "Wrong selected baseline for \(item.name)")
+                if baselineRendered && baseline.isReady, let binding = control.binding, binding.wrappedValue?.rawValue == you {
+                    control.externalWriteCount += 1
+                    binding.wrappedValue = AccountID(rawValue: maya)
+                    terminal = await sample(expectedID: maya)
+                    terminalSourcePhase = terminalName
+                    terminalAttempted = true
+                } else {
+                    XCTFail("External write not issued because baseline/render/binding was unavailable for \(item.name)")
+                    terminal = baseline
+                    terminalSourcePhase = baselineName
+                    terminalAttempted = false
+                }
+            } else {
+                terminal = await sample(expectedID: maya)
+                terminalSourcePhase = terminalName
+                terminalAttempted = true
+            }
+            _ = try retain(name: terminalName, intendedID: maya, state: terminal, sourcePhase: terminalSourcePhase, attempted: terminalAttempted)
+            XCTAssertTrue(terminalAttempted, "No terminal request was attempted for \(item.name)")
+            XCTAssertEqual(control.externalWriteCount, item.external && terminalAttempted ? 1 : 0)
+            if terminalAttempted {
+                XCTAssertEqual(control.binding?.wrappedValue?.rawValue, maya, "Wrong selected target for \(item.name)")
+                XCTAssertTrue(terminal.isReady, "Unsettled terminal for \(item.name): \(terminal)")
+                XCTAssertEqual(terminal.memberViewport?.centeredID, maya, "Wrong visible terminal member for \(item.name)")
+                XCTAssertTrue(terminal.memberScroll?.isObservable == true, "Unobservable native scroll owner for \(item.name)")
+            }
+        }
+        #else
+        throw XCTSkip("The diagnostic preview and layout probes require the manual Debug configuration.")
+        #endif
+    }
+
     private var fixtures: [(String, AnyView)] {
         let account = AccountIdentity(
             id: AccountID(rawValue: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!),
@@ -118,4 +242,26 @@ final class WaveOneReferenceRenderTests: XCTestCase {
         #endif
         return result
     }
+}
+
+@MainActor
+private final class PagerBindingDiagnosticControl {
+    var binding: Binding<AccountID?>?
+    var bindingExportCount = 0
+    var externalWriteCount = 0
+}
+
+private struct PagerBindingDiagnosticRecord: Codable {
+    let caseName: String
+    let hosting: String
+    let phase: String
+    let intendedMemberID: UUID
+    let readinessSourcePhase: String
+    let attempted: Bool
+    let selectedMemberID: UUID?
+    let bindingAvailable: Bool
+    let hierarchyRendered: Bool
+    let bindingExportCount: Int
+    let externalWriteCount: Int
+    let readiness: ReferenceReadiness
 }

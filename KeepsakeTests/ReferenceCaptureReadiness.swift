@@ -32,6 +32,51 @@ struct ReferenceMemberViewport: Codable, Equatable, Sendable {
     }
 }
 
+struct ReferenceMemberScroll: Codable, Equatable, Sendable {
+    struct Insets: Codable, Equatable, Sendable {
+        let top: CGFloat
+        let left: CGFloat
+        let bottom: CGFloat
+        let right: CGFloat
+
+        init(_ insets: UIEdgeInsets) {
+            top = insets.top
+            left = insets.left
+            bottom = insets.bottom
+            right = insets.right
+        }
+    }
+
+    var cardProbeCount = 0
+    var ownerCount = 0
+    var allCardsShareOwner = false
+    var ownerToken: String?
+    var bounds: CGRect?
+    var windowFrame: CGRect?
+    var contentSize: CGSize?
+    var contentOffset: CGPoint?
+    var contentInset: Insets?
+    var adjustedContentInset: Insets?
+    var isScrollEnabled: Bool?
+    var isTracking: Bool?
+    var isDragging: Bool?
+    var isDecelerating: Bool?
+
+    var isObservable: Bool {
+        guard cardProbeCount == 3, ownerCount == 1, allCardsShareOwner,
+              let ownerToken, !ownerToken.isEmpty,
+              let bounds, let windowFrame, let contentSize, let contentOffset,
+              let contentInset, let adjustedContentInset,
+              isScrollEnabled != nil, isTracking != nil, isDragging != nil, isDecelerating != nil else { return false }
+        return [bounds.minX, bounds.minY, bounds.width, bounds.height,
+                windowFrame.minX, windowFrame.minY, windowFrame.width, windowFrame.height,
+                contentSize.width, contentSize.height, contentOffset.x, contentOffset.y,
+                contentInset.top, contentInset.left, contentInset.bottom, contentInset.right,
+                adjustedContentInset.top, adjustedContentInset.left, adjustedContentInset.bottom, adjustedContentInset.right]
+            .allSatisfy(\.isFinite)
+    }
+}
+
 struct ReferenceReadiness: Codable, Equatable, Sendable {
     enum MapState: String, Codable, Sendable {
         case notRequired, pending, fullyRendered, unavailable, unobservable
@@ -43,20 +88,25 @@ struct ReferenceReadiness: Codable, Equatable, Sendable {
     var deadlineExpired = false
     var detail: String?
     var memberViewport: ReferenceMemberViewport? = nil
+    var memberScroll: ReferenceMemberScroll? = nil
 
     var isReady: Bool {
         appeared && stableLayoutFrames >= 2 && !deadlineExpired
             && (map == .notRequired || map == .fullyRendered)
             && (memberViewport?.isReady ?? true)
+            && (memberScroll?.isObservable ?? true)
     }
 
-    mutating func recordLayout(stable: Bool, memberViewport: ReferenceMemberViewport? = nil) {
+    mutating func recordLayout(stable: Bool, memberViewport: ReferenceMemberViewport? = nil, memberScroll: ReferenceMemberScroll? = nil) {
         let observed = memberViewport ?? self.memberViewport.map {
             ReferenceMemberViewport(expectedID: $0.expectedID, viewport: .zero, cards: [])
         }
         let memberStable = self.memberViewport == observed
         self.memberViewport = observed
-        stableLayoutFrames = stable && memberStable ? stableLayoutFrames + 1 : 0
+        let observedScroll = memberScroll ?? self.memberScroll.map { _ in ReferenceMemberScroll() }
+        let scrollStable = self.memberScroll == observedScroll
+        self.memberScroll = observedScroll
+        stableLayoutFrames = stable && memberStable && scrollStable ? stableLayoutFrames + 1 : 0
     }
 
     mutating func renderingStarted() {
@@ -123,9 +173,10 @@ final class ReferenceFixtureController: UIHostingController<AnyView> {
 @MainActor
 final class ReferenceCaptureReadiness: NSObject {
     private let window: UIWindow
-    private let host: ReferenceHostController
+    private let host: ReferenceHostController?
     private let content: ReferenceFixtureController
     private let expectedMemberID: UUID?
+    private let observesMemberScroll: Bool
     private var state: ReferenceReadiness
     private var previousGeometry: [CGFloat]?
     private var mapView: MKMapView?
@@ -134,13 +185,15 @@ final class ReferenceCaptureReadiness: NSObject {
     private var deadline: Timer?
     private var continuation: CheckedContinuation<ReferenceReadiness, Never>?
 
-    init(window: UIWindow, host: ReferenceHostController, content: ReferenceFixtureController, needsMap: Bool, expectedMemberID: UUID? = nil) {
+    init(window: UIWindow, host: ReferenceHostController?, content: ReferenceFixtureController, needsMap: Bool, expectedMemberID: UUID? = nil, observesMemberScroll: Bool = false) {
         self.window = window
         self.host = host
         self.content = content
         self.expectedMemberID = expectedMemberID
+        self.observesMemberScroll = observesMemberScroll
         state = ReferenceReadiness(map: needsMap ? .pending : .notRequired)
         state.memberViewport = expectedMemberID.map { ReferenceMemberViewport(expectedID: $0, viewport: .zero, cards: []) }
+        state.memberScroll = observesMemberScroll ? ReferenceMemberScroll() : nil
     }
 
     func wait(timeout: TimeInterval) async -> ReferenceReadiness {
@@ -172,8 +225,13 @@ final class ReferenceCaptureReadiness: NSObject {
         guard continuation != nil else { return }
         window.layoutIfNeeded()
         content.view.layoutIfNeeded()
-        state.appeared = host.appeared && content.appeared
-            && content.view.window === window && window.isKeyWindow
+        let ownsContent: Bool
+        if let host {
+            ownsContent = window.rootViewController === host && content.parent === host && host.appeared
+        } else {
+            ownsContent = window.rootViewController === content && content.parent == nil
+        }
+        state.appeared = ownsContent && content.appeared && content.view.window === window && window.isKeyWindow
 
         if state.map != .notRequired, mapObserver == nil {
             let maps = mapViews(in: content.view)
@@ -209,6 +267,7 @@ final class ReferenceCaptureReadiness: NSObject {
             || (mapView?.bounds.width ?? 0) > 0 && (mapView?.bounds.height ?? 0) > 0
         let valid = state.appeared && bounds.width > 0 && bounds.height > 0 && mapHasBounds
         var memberViewport = state.memberViewport
+        var memberScroll = state.memberScroll
         #if DEBUG
         if let expectedID = expectedMemberID {
             let probes = memberProbes(in: content.view).filter { $0.window === window }
@@ -219,9 +278,12 @@ final class ReferenceCaptureReadiness: NSObject {
                 return .init(id: id.rawValue, frame: probe.convert(probe.bounds, to: window))
             }.sorted { $0.id.uuidString < $1.id.uuidString }
             memberViewport = ReferenceMemberViewport(expectedID: expectedID, viewport: viewport, cards: cards)
+            if observesMemberScroll {
+                memberScroll = scrollSnapshot(probes: probes)
+            }
         }
         #endif
-        state.recordLayout(stable: valid && previousGeometry == geometry, memberViewport: memberViewport)
+        state.recordLayout(stable: valid && previousGeometry == geometry, memberViewport: memberViewport, memberScroll: memberScroll)
         previousGeometry = valid ? geometry : nil
         if state.isReady || state.map == .unavailable || state.map == .unobservable {
             finish()
@@ -254,6 +316,38 @@ final class ReferenceCaptureReadiness: NSObject {
     private func memberProbes(in view: UIView) -> [GroupMemberLayoutProbeView] {
         if let probe = view as? GroupMemberLayoutProbeView { return [probe] }
         return view.subviews.flatMap { memberProbes(in: $0) }
+    }
+
+    private func scrollSnapshot(probes: [GroupMemberLayoutProbeView]) -> ReferenceMemberScroll {
+        let cards = probes.filter { $0.memberID != nil }
+        var owners: [UIScrollView] = []
+        for card in cards {
+            var ancestor = card.superview
+            while let view = ancestor {
+                if let scroll = view as? UIScrollView {
+                    owners.append(scroll)
+                    break
+                }
+                ancestor = view.superview
+            }
+        }
+        var snapshot = ReferenceMemberScroll()
+        snapshot.cardProbeCount = cards.count
+        snapshot.ownerCount = Set(owners.map { ObjectIdentifier($0) }).count
+        snapshot.allCardsShareOwner = cards.count == 3 && owners.count == cards.count && snapshot.ownerCount == 1
+        guard snapshot.allCardsShareOwner, let scroll = owners.first else { return snapshot }
+        snapshot.ownerToken = String(describing: ObjectIdentifier(scroll))
+        snapshot.bounds = scroll.bounds
+        snapshot.windowFrame = scroll.convert(scroll.bounds, to: window)
+        snapshot.contentSize = scroll.contentSize
+        snapshot.contentOffset = scroll.contentOffset
+        snapshot.contentInset = ReferenceMemberScroll.Insets(scroll.contentInset)
+        snapshot.adjustedContentInset = ReferenceMemberScroll.Insets(scroll.adjustedContentInset)
+        snapshot.isScrollEnabled = scroll.isScrollEnabled
+        snapshot.isTracking = scroll.isTracking
+        snapshot.isDragging = scroll.isDragging
+        snapshot.isDecelerating = scroll.isDecelerating
+        return snapshot
     }
     #endif
 }

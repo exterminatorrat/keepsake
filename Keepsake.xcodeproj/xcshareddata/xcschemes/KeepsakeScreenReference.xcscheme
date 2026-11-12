@@ -18,6 +18,7 @@
                <Test Identifier="AuthPresentationTests"/>
                <Test Identifier="GroupMemberSelectionTests"/>
                <Test Identifier="WaveOneReferenceRenderTests/testScreenReferenceAttachments()"/>
+               <Test Identifier="WaveOneReferenceRenderTests/testMemberPagerBindingDiagnostics()"/>
             </SelectedTests>
          </TestableReference>
       </Testables>

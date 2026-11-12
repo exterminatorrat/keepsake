@@ -149,9 +149,11 @@ struct GroupMemberPagerPreview: View {
 
     @State private var selection: AccountID?
     @State private var showsDetails = false
+    private let onSelectionAvailable: (@MainActor (Binding<AccountID?>) -> Void)?
 
-    init(index: Int = 0) {
+    init(index: Int = 0, onSelectionAvailable: (@MainActor (Binding<AccountID?>) -> Void)? = nil) {
         _selection = State(initialValue: Self.members[min(max(0, index), Self.members.count - 1)].id)
+        self.onSelectionAvailable = onSelectionAvailable
     }
 
     var body: some View {
@@ -182,6 +184,7 @@ struct GroupMemberPagerPreview: View {
             }
         }
         .background { KeepsakeStyle.canvas.ignoresSafeArea() }
+        .onAppear { onSelectionAvailable?($selection) }
     }
 }
 

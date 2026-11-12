@@ -107,6 +107,42 @@ struct ReferenceReadinessTests {
         #expect(!state.isReady)
     }
 
+    @Test func diagnosticScrollRequiresCompleteEvidenceWithoutRequiringHealthyScrolling() {
+        var scroll = ReferenceMemberScroll()
+        #expect(!scroll.isObservable)
+        scroll.cardProbeCount = 3
+        scroll.ownerCount = 1
+        scroll.allCardsShareOwner = true
+        scroll.ownerToken = "fixture-owner"
+        scroll.bounds = .zero
+        scroll.windowFrame = .zero
+        scroll.contentSize = .zero
+        scroll.contentOffset = .zero
+        scroll.contentInset = .init(.zero)
+        scroll.adjustedContentInset = .init(.zero)
+        scroll.isScrollEnabled = false
+        scroll.isTracking = false
+        scroll.isDragging = false
+        scroll.isDecelerating = false
+        #expect(scroll.isObservable)
+        var state = ReferenceReadiness(appeared: true, map: .notRequired)
+        for _ in 0..<3 { state.recordLayout(stable: true, memberScroll: scroll) }
+        #expect(state.isReady)
+        state.recordLayout(stable: true)
+        #expect(!state.isReady)
+        for _ in 0..<3 { state.recordLayout(stable: true, memberScroll: scroll) }
+        #expect(state.isReady)
+        scroll.ownerCount = 2
+        #expect(!scroll.isObservable)
+        state.recordLayout(stable: true, memberScroll: scroll)
+        #expect(!state.isReady)
+        scroll.ownerCount = 1
+        scroll.contentOffset = nil
+        #expect(!scroll.isObservable)
+        scroll.contentOffset = CGPoint(x: CGFloat.nan, y: 0)
+        #expect(!scroll.isObservable)
+    }
+
     @Test(arguments: [ReferenceReadiness.MapState.unavailable, .unobservable])
     func terminalMapFailureCannotBeOverwritten(map: ReferenceReadiness.MapState) {
         var state = ReferenceReadiness(appeared: true, stableLayoutFrames: 2, map: map)

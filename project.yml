@@ -52,6 +52,7 @@ schemes:
             - AuthPresentationTests
             - GroupMemberSelectionTests
             - WaveOneReferenceRenderTests/testScreenReferenceAttachments()
+            - WaveOneReferenceRenderTests/testMemberPagerBindingDiagnostics()
       environmentVariables:
         KEEPSAKE_REFERENCE_RENDER: "1"
   Keepsake:
