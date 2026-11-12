@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F50000000000000000000001 /* AuthPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000001 /* AuthPresentation.swift */; };
+		F50000000000000000000002 /* AuthComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* AuthComponents.swift */; };
+		F50000000000000000000003 /* AuthOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000003 /* AuthOnboardingView.swift */; };
+		F50000000000000000000004 /* GroupMemberPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000004 /* GroupMemberPresentation.swift */; };
+		F50000000000000000000005 /* GroupMemberPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000005 /* GroupMemberPager.swift */; };
+		F50000000000000000000006 /* AuthPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000006 /* AuthPresentationTests.swift */; };
+		F50000000000000000000007 /* GroupMemberSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000007 /* GroupMemberSelectionTests.swift */; };
 		F30000000000000000000001 /* GroupSheetLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000001 /* GroupSheetLayout.swift */; };
 		F30000000000000000000002 /* GroupSheetLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* GroupSheetLayoutTests.swift */; };
 		F30000000000000000000003 /* ReferenceCaptureReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ReferenceCaptureReadiness.swift */; };
@@ -68,6 +75,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F60000000000000000000001 /* AuthPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthPresentation.swift"; sourceTree = "<group>"; };
+		F60000000000000000000002 /* AuthComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthComponents.swift"; sourceTree = "<group>"; };
+		F60000000000000000000003 /* AuthOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthOnboardingView.swift"; sourceTree = "<group>"; };
+		F60000000000000000000004 /* GroupMemberPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupMemberPresentation.swift"; sourceTree = "<group>"; };
+		F60000000000000000000005 /* GroupMemberPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupMemberPager.swift"; sourceTree = "<group>"; };
+		F60000000000000000000006 /* AuthPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthPresentationTests.swift"; sourceTree = "<group>"; };
+		F60000000000000000000007 /* GroupMemberSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GroupMemberSelectionTests.swift"; sourceTree = "<group>"; };
 		F40000000000000000000001 /* GroupSheetLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Groups/GroupSheetLayout.swift"; sourceTree = "<group>"; };
 		F40000000000000000000002 /* GroupSheetLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSheetLayoutTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000003 /* ReferenceCaptureReadiness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceCaptureReadiness.swift; sourceTree = "<group>"; };
@@ -182,6 +196,8 @@
 		61E881E289660690541A7630 /* KeepsakeTests */ = {
 			isa = PBXGroup;
 			children = (
+				F60000000000000000000006 /* AuthPresentationTests.swift */,
+				F60000000000000000000007 /* GroupMemberSelectionTests.swift */,
 				F40000000000000000000002 /* GroupSheetLayoutTests.swift */,
 				F40000000000000000000003 /* ReferenceCaptureReadiness.swift */,
 				F40000000000000000000004 /* ReferenceReadinessTests.swift */,
@@ -221,6 +237,11 @@
 		5FB6E6881EEDD732CB6D138E /* Wave 1 Screens */ = {
 			isa = PBXGroup;
 			children = (
+				F60000000000000000000001 /* AuthPresentation.swift */,
+				F60000000000000000000002 /* AuthComponents.swift */,
+				F60000000000000000000003 /* AuthOnboardingView.swift */,
+				F60000000000000000000004 /* GroupMemberPresentation.swift */,
+				F60000000000000000000005 /* GroupMemberPager.swift */,
 				F40000000000000000000001 /* GroupSheetLayout.swift */,
 				C0195E808EFD87F04A797A4E /* AppRootView.swift */,
 				178BF857943C8060751EA27B /* AppServices.swift */,
@@ -321,6 +342,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F50000000000000000000006 /* AuthPresentationTests.swift in Sources */,
+				F50000000000000000000007 /* GroupMemberSelectionTests.swift in Sources */,
 				F30000000000000000000002 /* GroupSheetLayoutTests.swift in Sources */,
 				F30000000000000000000003 /* ReferenceCaptureReadiness.swift in Sources */,
 				F30000000000000000000004 /* ReferenceReadinessTests.swift in Sources */,
@@ -341,6 +364,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F50000000000000000000001 /* AuthPresentation.swift in Sources */,
+				F50000000000000000000002 /* AuthComponents.swift in Sources */,
+				F50000000000000000000003 /* AuthOnboardingView.swift in Sources */,
+				F50000000000000000000004 /* GroupMemberPresentation.swift in Sources */,
+				F50000000000000000000005 /* GroupMemberPager.swift in Sources */,
 				F30000000000000000000001 /* GroupSheetLayout.swift in Sources */,
 				2659DF72A368EC421B20457E /* AppRootView.swift in Sources */,
 				5A87F0BFF6EF413D388C4202 /* AppServices.swift in Sources */,

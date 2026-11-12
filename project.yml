@@ -49,6 +49,8 @@ schemes:
             - GroupSheetLayoutTests
             - ReferenceReadinessTests
             - GroupsNavigationTests
+            - AuthPresentationTests
+            - GroupMemberSelectionTests
             - WaveOneReferenceRenderTests/testScreenReferenceAttachments()
       environmentVariables:
         KEEPSAKE_REFERENCE_RENDER: "1"

@@ -6,6 +6,8 @@ struct GroupsNavigation: Equatable, Sendable {
     }
 
     private(set) var accountID: AccountID
+    private(set) var accountGeneration: UUID?
+    private(set) var selectedMemberID: AccountID?
     private(set) var tab: AppTab
     private(set) var presentation: GroupPresentation
     private(set) var isSelectorOpen: Bool
@@ -13,11 +15,14 @@ struct GroupsNavigation: Equatable, Sendable {
 
     init(
         accountID: AccountID,
+        accountGeneration: UUID? = nil,
         tab: AppTab = .groups,
         presentation: GroupPresentation = .groupCollapsed,
         isSelectorOpen: Bool = false
     ) {
         self.accountID = accountID
+        self.accountGeneration = accountGeneration
+        self.selectedMemberID = presentation == .memberCollapsed || presentation == .memberExpanded ? accountID : nil
         self.tab = tab
         self.presentation = presentation
         self.isSelectorOpen = isSelectorOpen
@@ -35,6 +40,7 @@ struct GroupsNavigation: Equatable, Sendable {
     mutating func select(tab newTab: AppTab) {
         guard newTab != tab else { return }
         tab = newTab
+        selectedMemberID = nil
         presentation = detentPresentation
         isSelectorOpen = false
     }
@@ -60,10 +66,16 @@ struct GroupsNavigation: Equatable, Sendable {
         isSelectorOpen = false
     }
 
-    mutating func showMemberCard() {
+    mutating func showMemberCard(memberID: AccountID? = nil) {
         guard isShowingGroupSheet else { return }
+        selectedMemberID = memberID ?? accountID
         presentation = .memberCollapsed
         isSelectorOpen = false
+    }
+
+    mutating func selectMember(_ memberID: AccountID?, available: [AccountID]) {
+        guard let memberID, available.contains(memberID) else { return }
+        selectedMemberID = memberID
     }
 
     mutating func expandMemberCard() {
@@ -105,6 +117,7 @@ struct GroupsNavigation: Equatable, Sendable {
 
     mutating func sync(with state: GroupScreenState) {
         guard case .ready = state else {
+            selectedMemberID = nil
             presentation = detentPresentation
             isSelectorOpen = false
             return
@@ -112,9 +125,11 @@ struct GroupsNavigation: Equatable, Sendable {
     }
 
     @discardableResult
-    mutating func reset(for newAccountID: AccountID) -> Bool {
-        guard newAccountID != accountID else { return false }
+    mutating func reset(for newAccountID: AccountID, generation: UUID? = nil) -> Bool {
+        guard newAccountID != accountID || generation != accountGeneration else { return false }
         accountID = newAccountID
+        accountGeneration = generation
+        selectedMemberID = nil
         tab = .groups
         detent = .collapsed
         presentation = .groupCollapsed

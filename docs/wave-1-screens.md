@@ -1,5 +1,7 @@
 # Early Wave 1 screen slice
 
+The latest UI-feedback source refresh replaces the auth appearance from the new approved workflow board, raises the Groups header and adds a narrower finite member pager. See [the reference-refresh scope and unrun validation boundary](auth-groups-reference-refresh.md). Native results at49fdf16 and earlier remain historical evidence only; this new source is uncompiled/unrendered. No backend, permission or recorder activation is included.
+
 This child of the local-recorder foundation implements the native screen and state boundary only. The production entry constructs `AppSession(services: .production)`, not `RecorderModel`. Production services explicitly report that real sign-in is not configured. Entering an email must not synthesize an account or a group. No SDK, key, backend migration, Auth request or demo sign-in has been added.
 
 The source includes minimal Email/Code presentation, restoring/configuration/error states, a private solo-group name form and the five-tab Groups shell. The reference surfaces are G01/G02/G03, self-only M01/M02 and S00/minimal Account. Features outside this slice explain that they are unavailable. There are no fake live dots, other members, activities, route geometry, location/camera/contact requests or production fixture fallbacks.

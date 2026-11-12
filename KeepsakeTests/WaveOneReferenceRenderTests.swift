@@ -81,7 +81,7 @@ final class WaveOneReferenceRenderTests: XCTestCase {
                 .toolbar(.hidden, for: .navigationBar)
             })
         }
-        return [
+        var result: [(String, AnyView)] = [
             ("Email", auth(AuthScreenState())),
             ("Code", auth(AuthScreenState(step: .code, email: "fixture@example.com"))),
             ("AuthError", auth(AuthScreenState(step: .code, email: "fixture@example.com", errorMessage: AppServiceError.invalidCode.message))),
@@ -98,5 +98,14 @@ final class WaveOneReferenceRenderTests: XCTestCase {
             ("Offline", shell(.ready(group, offline: true))),
             ("GroupError", shell(.failed(message: "Connect to load your group.", offline: true)))
         ]
+        #if DEBUG
+        result += AuthReferencePose.allCases.map { pose in
+            (pose.rawValue, AnyView(AuthWorkflowPreview(pose: pose)))
+        }
+        result += (0..<3).map { index in
+            ("MemberPager-\(index)", AnyView(GroupMemberPagerPreview(index: index)))
+        }
+        #endif
+        return result
     }
 }

@@ -15,6 +15,8 @@
                <Test Identifier="GroupSheetLayoutTests"/>
                <Test Identifier="ReferenceReadinessTests"/>
                <Test Identifier="GroupsNavigationTests"/>
+               <Test Identifier="AuthPresentationTests"/>
+               <Test Identifier="GroupMemberSelectionTests"/>
                <Test Identifier="WaveOneReferenceRenderTests/testScreenReferenceAttachments()"/>
             </SelectedTests>
          </TestableReference>

@@ -7,6 +7,7 @@ struct GroupsShellView: View {
     private let onCreate: (String) -> Void
     private let onRetry: () -> Void
     private let onSignOut: () -> Void
+    private let accountGeneration: UUID?
 
     @State private var navigation: GroupsNavigation
     @State private var draftName = ""
@@ -25,16 +26,19 @@ struct GroupsShellView: View {
         onRetry: @escaping () -> Void,
         onSignOut: @escaping () -> Void,
         initialPresentation: GroupPresentation = .groupCollapsed,
-        initialSelectorOpen: Bool = false
+        initialSelectorOpen: Bool = false,
+        accountGeneration: UUID? = nil
     ) {
         self.account = account
         self.state = state
         self.onCreate = onCreate
         self.onRetry = onRetry
         self.onSignOut = onSignOut
+        self.accountGeneration = accountGeneration
         _navigation = State(
             initialValue: GroupsNavigation(
                 accountID: account.id,
+                accountGeneration: accountGeneration,
                 presentation: initialPresentation,
                 isSelectorOpen: initialSelectorOpen
             )
@@ -67,9 +71,16 @@ struct GroupsShellView: View {
                 Text("Your account will be signed out on this device.")
             }
             .onChange(of: account.id) { _, newAccountID in
-                navigation.reset(for: newAccountID)
+                navigation.reset(for: newAccountID, generation: accountGeneration)
                 draftName = ""
                 notice = nil
+                isConfirmingSignOut = false
+            }
+            .onChange(of: accountGeneration) { _, generation in
+                navigation.reset(for: account.id, generation: generation)
+                draftName = ""
+                notice = nil
+                isConfirmingSignOut = false
             }
             .onChange(of: state) { _, newState in
                 navigation.sync(with: newState)
@@ -97,7 +108,7 @@ struct GroupsShellView: View {
         } else if navigation.presentation == .account {
             AccountView(
                 account: account,
-                onBack: { navigation = GroupsNavigation(accountID: account.id) },
+                onBack: { navigation = GroupsNavigation(accountID: account.id, accountGeneration: accountGeneration) },
                 onSignOut: { isConfirmingSignOut = true },
                 onUnavailable: present
             )
@@ -195,7 +206,7 @@ struct GroupsShellView: View {
                         .accessibilityHidden(true)
                         GroupMemberStrip(
                             height: height,
-                            onShowMember: { navigation.showMemberCard() },
+                            onShowMember: { navigation.showMemberCard(memberID: account.id) },
                             onUnavailable: present
                         )
                         .accessibilityHidden(true)
@@ -217,7 +228,7 @@ struct GroupsShellView: View {
                             isOffline: offline,
                             height: height,
                             onToggleExpanded: { navigation.toggleSheetDetent() },
-                            onShowMember: { navigation.showMemberCard() },
+                            onShowMember: { navigation.showMemberCard(memberID: account.id) },
                             onRetry: onRetry,
                             onUnavailable: present
                         )
@@ -252,35 +263,47 @@ struct GroupsShellView: View {
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, KeepsakeStyle.margin)
-                    .padding(.top, 10)
+                    .padding(.top, GroupMemberLayout.headerTopInset)
                 }
             }
         }
     }
 
     private func memberScene(group: SoloGroup) -> some View {
-        Group {
+        let members = [GroupMemberPresentation.selfMember(account: account)]
+        let selected = members.first(where: { $0.id == navigation.selectedMemberID }) ?? members[0]
+        let selection = Binding<AccountID?>(
+            get: { navigation.selectedMemberID },
+            set: { navigation.selectMember($0, available: members.map(\.id)) }
+        )
+        return Group {
             if navigation.presentation == .memberExpanded {
                 GroupMemberDetailView(
                     group: group,
+                    member: selected,
                     onBack: { navigation.collapseMemberCard() },
                     onUnavailable: present
                 )
             } else {
-                GroupMapBackdrop {
-                    GroupMemberCardView(
-                        group: group,
-                        onExpand: { navigation.expandMemberCard() },
-                        onDismiss: { navigation.goBack() }
-                    )
-                }
-                .overlay(alignment: .top) {
-                    VStack(spacing: 8) {
-                        groupHeader(group: group)
-                        Spacer(minLength: 0)
+                GeometryReader { geometry in
+                    GroupMapBackdrop {
+                        GroupMemberPager(
+                            members: members,
+                            group: group,
+                            availableWidth: geometry.size.width,
+                            selection: selection,
+                            onExpand: { navigation.expandMemberCard() },
+                            onDismiss: { navigation.goBack() }
+                        )
                     }
-                    .padding(.horizontal, KeepsakeStyle.margin)
-                    .padding(.top, 10)
+                    .overlay(alignment: .top) {
+                        VStack(spacing: 8) {
+                            groupHeader(group: group)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, KeepsakeStyle.margin)
+                        .padding(.top, GroupMemberLayout.headerTopInset)
+                    }
                 }
             }
         }

@@ -3,29 +3,32 @@ import SwiftUI
 @MainActor
 struct GroupMemberCardView: View {
     let group: SoloGroup
+    let member: GroupMemberPresentation
+    let memberCount: Int
     let onExpand: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
-                GroupMonogram(name: "You", size: 44)
+                GroupMonogram(name: member.displayName, size: 44)
 
                 Button(action: onExpand) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("You")
+                        Text(member.displayName)
                             .font(.headline)
                             .foregroundStyle(KeepsakeStyle.ink)
-                        Text("Owner · 1 member")
+                        Text(member.role)
                             .font(.footnote)
                             .foregroundStyle(KeepsakeStyle.secondaryInk)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: KeepsakeStyle.minimumHitTarget)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("You, group owner")
-                .accessibilityHint("Opens your member details")
+                .accessibilityLabel("\(member.displayName), \(member.role)")
+                .accessibilityHint("Opens the selected member’s details")
 
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
@@ -39,18 +42,20 @@ struct GroupMemberCardView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Close member card")
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.horizontal, 18)
+            .padding(.top, 18)
             .padding(.bottom, 14)
 
             Divider()
                 .overlay(KeepsakeStyle.separator)
 
-            Text("You’re the only member of \(group.name). Keepsake doesn’t share your location in this build.")
+            Text(member.isSelf && memberCount == 1
+                 ? "You’re the only member of \(group.name). Keepsake doesn’t share your location in this build."
+                 : "Location sharing and member activity aren’t enabled in this build.")
                 .font(.footnote)
                 .foregroundStyle(KeepsakeStyle.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 14)
 
             Divider()
@@ -64,22 +69,21 @@ struct GroupMemberCardView: View {
             )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(KeepsakeStyle.surface, in: RoundedRectangle(cornerRadius: KeepsakeStyle.sheetRadius, style: .continuous))
-        .shadow(color: .black.opacity(0.1), radius: 24, y: -4)
-        .padding(.horizontal, KeepsakeStyle.margin)
-        .padding(.bottom, 8)
+        .background(KeepsakeStyle.surface, in: RoundedRectangle(cornerRadius: GroupMemberLayout.cornerRadius, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 14, y: 2)
     }
 }
 
 @MainActor
 struct GroupMemberDetailView: View {
     let group: SoloGroup
+    let member: GroupMemberPresentation
     let onBack: () -> Void
     let onUnavailable: (UnavailableFeature) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            GroupScreenHeader(title: "You", onBack: onBack)
+            GroupScreenHeader(title: member.displayName, onBack: onBack)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -99,13 +103,13 @@ struct GroupMemberDetailView: View {
 
     private var identity: some View {
         HStack(spacing: 16) {
-            GroupMonogram(name: "You", size: 68)
+            GroupMonogram(name: member.displayName, size: 68)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("You")
+                Text(member.displayName)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(KeepsakeStyle.ink)
-                Text("Owner")
+                Text(member.role)
                     .font(.subheadline)
                     .foregroundStyle(KeepsakeStyle.secondaryInk)
                 Text(group.name)
@@ -125,7 +129,7 @@ struct GroupMemberDetailView: View {
             VStack(spacing: 0) {
                 row("Group", value: group.name)
                 Divider().overlay(KeepsakeStyle.separator)
-                row("Role", value: "Owner")
+                row("Role", value: member.role)
                 Divider().overlay(KeepsakeStyle.separator)
                 row("Location sharing", value: "Not shared")
             }
