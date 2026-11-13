@@ -3,11 +3,11 @@ import SwiftUI
 @main
 @MainActor
 struct KeepsakeApp: App {
-    @State private var recorder = RecorderModel()
+    @State private var session = AppSession(services: .production)
 
     var body: some Scene {
         WindowGroup {
-            RouteHomeView(recorder: recorder)
+            AppRootView(session: session)
         }
     }
 }
