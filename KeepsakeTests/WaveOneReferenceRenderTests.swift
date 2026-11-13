@@ -77,13 +77,16 @@ final class WaveOneReferenceRenderTests: XCTestCase {
         let you = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
         let maya = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
         let jin = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
-        let cases: [(name: String, root: Bool, external: Bool, index: Int, target: UUID)] = [
-            ("PG-A-contained-initial", false, false, 1, maya),
-            ("PG-B-root-initial", true, false, 1, maya),
-            ("PG-C-contained-external", false, true, 0, maya),
-            ("PG-D-root-external", true, true, 0, maya),
-            ("PG-E-contained-initial-first", false, false, 0, you),
-            ("PG-F-contained-initial-last", false, false, 2, jin)
+        let memberIDs = [you, maya, jin].map { AccountID(rawValue: $0) }
+        let cases: [(name: String, root: Bool, external: Bool, index: Int, target: UUID, step: Int)] = [
+            ("PG-A-contained-initial", false, false, 1, maya, 0),
+            ("PG-B-root-initial", true, false, 1, maya, 0),
+            ("PG-C-contained-external", false, true, 0, maya, 1),
+            ("PG-D-root-external", true, true, 0, maya, 1),
+            ("PG-E-contained-initial-first", false, false, 0, you, 0),
+            ("PG-F-contained-initial-last", false, false, 2, jin, 0),
+            ("PG-G-previous-wrap", false, true, 0, jin, -1),
+            ("PG-H-next-wrap", false, true, 2, you, 1)
         ]
         for item in cases {
             let previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
@@ -155,18 +158,21 @@ final class WaveOneReferenceRenderTests: XCTestCase {
             let terminalAttempted: Bool
             if item.external {
                 let baselineName = item.name + "-baseline"
-                let baseline = await sample(expectedID: you)
-                let baselineRendered = try retain(name: baselineName, intendedID: you, state: baseline, sourcePhase: baselineName, attempted: true)
-                XCTAssertTrue(baseline.isReady, "Unready You baseline for \(item.name): \(baseline)")
-                XCTAssertEqual(control.binding?.wrappedValue?.rawValue, you, "Wrong selected baseline for \(item.name)")
-                if baselineRendered && baseline.isReady, let binding = control.binding, binding.wrappedValue?.rawValue == you {
+                let baselineID = memberIDs[item.index]
+                let baseline = await sample(expectedID: baselineID.rawValue)
+                let baselineRendered = try retain(name: baselineName, intendedID: baselineID.rawValue, state: baseline, sourcePhase: baselineName, attempted: true)
+                XCTAssertTrue(baseline.isReady, "Unready baseline for \(item.name): \(baseline)")
+                XCTAssertEqual(control.binding?.wrappedValue, baselineID, "Wrong selected baseline for \(item.name)")
+                if baselineRendered && baseline.isReady, let binding = control.binding, binding.wrappedValue == baselineID,
+                   let requested = GroupMemberSelection.moved(binding.wrappedValue, by: item.step, available: memberIDs) {
+                    XCTAssertEqual(requested.rawValue, item.target, "Wrong movement target for \(item.name)")
                     control.externalWriteCount += 1
-                    binding.wrappedValue = AccountID(rawValue: maya)
-                    terminal = await sample(expectedID: maya)
+                    binding.wrappedValue = requested
+                    terminal = await sample(expectedID: item.target)
                     terminalSourcePhase = terminalName
                     terminalAttempted = true
                 } else {
-                    XCTFail("External write not issued because baseline/render/binding was unavailable for \(item.name)")
+                    XCTFail("External write not issued because baseline/render/binding/target was unavailable for \(item.name)")
                     terminal = baseline
                     terminalSourcePhase = baselineName
                     terminalAttempted = false

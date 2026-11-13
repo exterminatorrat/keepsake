@@ -12,6 +12,7 @@ struct GroupMemberPager: View {
     let onExpand: () -> Void
     let onDismiss: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var edgeSwipe: GroupMemberEdgeSwipe? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,6 +41,40 @@ struct GroupMemberPager: View {
                     .scrollIndicators(.hidden)
                     .scrollClipDisabled()
                     .fixedSize(horizontal: false, vertical: true)
+                    .onScrollGeometryChange(for: Bool.self) { geometry in
+                        GroupMemberEdgeSwipe.isOutside(
+                            offset: geometry.contentOffset.x, contentWidth: geometry.contentSize.width,
+                            viewportWidth: geometry.containerSize.width,
+                            leadingInset: geometry.contentInsets.leading, trailingInset: geometry.contentInsets.trailing
+                        )
+                    } action: { _, outside in
+                        edgeSwipe?.recordOutside(outside)
+                    }
+                    .onScrollPhaseChange { _, phase, context in
+                        let outside = GroupMemberEdgeSwipe.isOutside(
+                            offset: context.geometry.contentOffset.x, contentWidth: context.geometry.contentSize.width,
+                            viewportWidth: context.geometry.containerSize.width,
+                            leadingInset: context.geometry.contentInsets.leading, trailingInset: context.geometry.contentInsets.trailing
+                        )
+                        if phase == .interacting {
+                            edgeSwipe = GroupMemberEdgeSwipe(selection: selection, groupID: group.id, members: members.map(\.id))
+                            edgeSwipe?.recordOutside(outside)
+                        } else if phase == .tracking {
+                            edgeSwipe = nil
+                        } else {
+                            edgeSwipe?.recordOutside(outside)
+                            edgeSwipe?.isInteracting = false
+                            if phase == .idle {
+                                let completed = edgeSwipe
+                                edgeSwipe = nil
+                                if let target = completed?.target(selection: selection, groupID: group.id, members: members.map(\.id)) {
+                                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+                                        selection = target
+                                    }
+                                }
+                            }
+                        }
+                    }
                     #if DEBUG
                     .background { GroupMemberLayoutProbe(memberID: nil) }
                     #endif
@@ -54,8 +89,15 @@ struct GroupMemberPager: View {
         }
         .padding(.bottom, 8)
         .onChange(of: members.map(\.id), initial: true) { _, ids in
+            edgeSwipe = nil
             selection = GroupMemberSelection.reconciled(selection, available: ids)
         }
+        .onChange(of: selection) { _, selected in
+            if selected != edgeSwipe?.memberID { edgeSwipe = nil }
+        }
+        .onChange(of: group.id) { _, _ in edgeSwipe = nil }
+        .onChange(of: availableWidth) { _, _ in edgeSwipe = nil }
+        .onDisappear { edgeSwipe = nil }
     }
 
     private func card(_ member: GroupMemberPresentation) -> some View {
@@ -77,33 +119,26 @@ struct GroupMemberPager: View {
                 Image(systemName: "chevron.left")
                     .frame(width: 44, height: 44)
             }
-            .disabled(selectedIndex == 0)
             .accessibilityLabel("Previous member")
-            Text("\(selectedIndex + 1) of \(members.count)")
-                .font(.footnote.monospacedDigit())
-                .accessibilityLabel("Member \(selectedIndex + 1) of \(members.count)")
-                .accessibilityAdjustableAction { direction in
-                    switch direction {
-                    case .increment: move(1)
-                    case .decrement: move(-1)
-                    @unknown default: break
-                    }
-                }
             Button { move(1) } label: {
                 Image(systemName: "chevron.right")
                     .frame(width: 44, height: 44)
             }
-            .disabled(selectedIndex == members.count - 1)
             .accessibilityLabel("Next member")
+        }
+        .accessibilityLabel("Members")
+        .accessibilityValue(members.first(where: { $0.id == selection })?.displayName ?? "")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: move(1)
+            case .decrement: move(-1)
+            @unknown default: break
+            }
         }
         .buttonStyle(.plain)
         .foregroundStyle(KeepsakeStyle.ink)
         .frame(maxWidth: .infinity)
         .background(KeepsakeStyle.surface)
-    }
-
-    private var selectedIndex: Int {
-        members.firstIndex(where: { $0.id == selection }) ?? 0
     }
 
     private func move(_ offset: Int) {

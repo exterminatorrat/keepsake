@@ -31,13 +31,17 @@ The live AuthPresentationNavigation has only welcome, entry and verification des
 
 The DEBUG host has no service dependency and uses fixed fixture strings and a fixed display date for its 0:42 countdown. It is not a launch flag, provider adapter or demo login. Unsupported providers cannot advance the live presentation router. Existing request/account-generation fencing remains unchanged.
 
-## Higher controls and finite member pager
+## Basic controls and cyclic member carousel
 
 Both Groups header sites use a 2-point top inset instead of 10, raising settings, group pill and notification controls together toward the inherited safe-area edge. There is no negative offset or system-chrome overlay. Their 48/44-point targets, shared pill/menu width, selector anchor/spacing and accessibility-size stacked row remain. This is source intent, not a measured new render.
 
 The member card uses 12-point even gutters, 24-point continuous radius and a quieter local shadow. Production constructs exactly the real self presentation from the supplied account identity. With one member there is no swipe affordance, page count, invented neighbor or wrapping.
 
-The finite multi-member presentation uses native horizontal ScrollView, scrollTargetLayout, view-aligned snapping and scrollPosition keyed by stable AccountID. Four-point gaps within 12-point outer margins allow narrow adjacent-card peeks in fixtures. No cloned end cards, looping timer or manual swipe recognizer. Previous/next controls and an accessible adjustable count stop at both ends; programmatic movement respects Reduce Motion. Actual peeks/swipes/focus/AX layouts are unrendered.
+The multi-member presentation keeps native horizontal ScrollView, view-aligned snapping, stable AccountID targets and the existing initial viewport application. Previous/next and accessibility adjustments are cyclic: previous from the first member selects the last, and next from the last selects the first. The visible numeric page counter is removed. Four-point gaps and 12-point margins remain; there are no cloned cards, fake neighbors or infinite-animation framework.
+
+For swipe wrapping, iOS18 public scroll geometry/phase callbacks record an intentional endpoint pull more than32pt outside the native horizontal range while the user interacts. After native scrolling becomes idle, one guarded selection change wraps to the other end. A returned pull, newer selection, changed group/member order/width, interruption or disappearance cancels the request. This is a simple edge-pull/bounce-then-wrap transition, not seamless infinite scrolling. No custom drag recognizer, native offset write, sleep or repeating scroll loop is used. The new source is uncompiled/unrun; actual gesture delivery, wrapping and accessibility remain unverified. Earlier b9 native results apply only to the prior finite/no-wrap head.
+
+The frontend is a basic auth/solo-Groups foundation for backend integration, not a complete reference-replication or artwork/polish campaign. Styling work beyond this small carousel change is deferred.
 
 GroupsNavigation owns production selection. Rows select the self ID; scrolling and card actions update that same ID before detail opens. Detail reads the selected presentation. Account ID/generation changes reset selection/local surface state; the root's generation identity fence remains. Three clearly labeled DEBUG sample-member fixtures cover first/middle/last selection and row/card/detail synchronization without adding real membership.
 

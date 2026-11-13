@@ -25,10 +25,10 @@ struct GroupMemberSelectionTests {
         #expect(GroupMemberSelection.reconciled(second, available: []) == nil)
     }
 
-    @Test func multiMemberPagingStopsAtBothEnds() {
-        #expect(GroupMemberSelection.moved(first, by: -1, available: [first, second]) == first)
+    @Test func multiMemberPagingWrapsAtBothEnds() {
+        #expect(GroupMemberSelection.moved(first, by: -1, available: [first, second]) == second)
         #expect(GroupMemberSelection.moved(first, by: 1, available: [first, second]) == second)
-        #expect(GroupMemberSelection.moved(second, by: 1, available: [first, second]) == second)
+        #expect(GroupMemberSelection.moved(second, by: 1, available: [first, second]) == first)
     }
 
     @Test func rowPagerAndDetailShareNavigationSelection() {
@@ -93,5 +93,64 @@ struct GroupMemberSelectionTests {
         #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [first, second]) == nil)
         navigation.selectMember(first, available: [first])
         #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [first]) == first)
+    }
+
+    @Test func cyclicMovementUsesCurrentOrderAndHandlesLargeOrMissingSelections() {
+        let third = AccountID(rawValue: UUID())
+        let available = [first, second, third]
+        #expect(GroupMemberSelection.moved(first, by: -1, available: available) == third)
+        #expect(GroupMemberSelection.moved(third, by: 1, available: available) == first)
+        #expect(GroupMemberSelection.moved(second, by: -1, available: available) == first)
+        #expect(GroupMemberSelection.moved(second, by: 1, available: available) == third)
+        #expect(GroupMemberSelection.moved(first, by: -4, available: available) == third)
+        #expect(GroupMemberSelection.moved(first, by: 3, available: available) == first)
+        #expect(GroupMemberSelection.moved(first, by: 1, available: [third, first, second]) == second)
+        #expect(GroupMemberSelection.moved(nil, by: -1, available: available) == first)
+        #expect(GroupMemberSelection.moved(third, by: 1, available: [first, second]) == first)
+        #expect(GroupMemberSelection.moved(first, by: Int.min, available: [first]) == first)
+    }
+
+    @Test(arguments: [CGFloat(-45), 785])
+    func edgePullGeometryRequiresIntentionalHorizontalOverscroll(offset: CGFloat) {
+        #expect(GroupMemberEdgeSwipe.isOutside(offset: offset, contentWidth: 1142, viewportWidth: 402, leadingInset: 12, trailingInset: 12))
+        #expect(!GroupMemberEdgeSwipe.isOutside(offset: -44, contentWidth: 1142, viewportWidth: 402, leadingInset: 12, trailingInset: 12))
+        #expect(!GroupMemberEdgeSwipe.isOutside(offset: 784, contentWidth: 1142, viewportWidth: 402, leadingInset: 12, trailingInset: 12))
+        #expect(!GroupMemberEdgeSwipe.isOutside(offset: .nan, contentWidth: 1142, viewportWidth: 402, leadingInset: 12, trailingInset: 12))
+        #expect(!GroupMemberEdgeSwipe.isOutside(offset: offset, contentWidth: 402, viewportWidth: 402, leadingInset: 12, trailingInset: 12))
+    }
+
+    @Test func edgeSwipeWrapsOnlyAfterInteractionAndKeepsTheReleaseIntent() throws {
+        let groupID = GroupID(rawValue: UUID())
+        var previous = try #require(GroupMemberEdgeSwipe(selection: first, groupID: groupID, members: [first, second]))
+        previous.recordOutside(true)
+        #expect(previous.target(selection: first, groupID: groupID, members: [first, second]) == nil)
+        previous.isInteracting = false
+        previous.recordOutside(false)
+        #expect(previous.target(selection: first, groupID: groupID, members: [first, second]) == second)
+        var next = try #require(GroupMemberEdgeSwipe(selection: second, groupID: groupID, members: [first, second]))
+        next.recordOutside(true)
+        next.isInteracting = false
+        #expect(next.target(selection: second, groupID: groupID, members: [first, second]) == first)
+    }
+
+    @Test func edgeSwipeCancelsReturnedPullAndStaleSelectionMembershipOrGroup() throws {
+        let groupID = GroupID(rawValue: UUID())
+        var swipe = try #require(GroupMemberEdgeSwipe(selection: first, groupID: groupID, members: [first, second]))
+        swipe.recordOutside(true)
+        swipe.recordOutside(false)
+        swipe.isInteracting = false
+        #expect(swipe.target(selection: first, groupID: groupID, members: [first, second]) == nil)
+        swipe.isInteracting = true
+        swipe.recordOutside(true)
+        swipe.isInteracting = false
+        #expect(swipe.target(selection: second, groupID: groupID, members: [first, second]) == nil)
+        #expect(swipe.target(selection: nil, groupID: groupID, members: [first, second]) == nil)
+        #expect(swipe.target(selection: first, groupID: groupID, members: [second, first]) == nil)
+        #expect(swipe.target(selection: first, groupID: groupID, members: [first]) == nil)
+        #expect(swipe.target(selection: first, groupID: GroupID(rawValue: UUID()), members: [first, second]) == nil)
+        #expect(GroupMemberEdgeSwipe(selection: nil, groupID: groupID, members: [first, second]) == nil)
+        #expect(GroupMemberEdgeSwipe(selection: first, groupID: groupID, members: []) == nil)
+        #expect(GroupMemberEdgeSwipe(selection: first, groupID: groupID, members: [first]) == nil)
+        #expect(GroupMemberEdgeSwipe(selection: second, groupID: groupID, members: [first, second, AccountID(rawValue: UUID())]) == nil)
     }
 }

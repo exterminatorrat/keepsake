@@ -1,6 +1,6 @@
 # Early Wave 1 screen slice
 
-The latest UI-feedback source refresh replaces the auth appearance from the new approved workflow board, raises the Groups header and adds a narrower finite member pager. See [the reference-refresh scope and unrun validation boundary](auth-groups-reference-refresh.md). Native results at49fdf16 and earlier remain historical evidence only; this new source is uncompiled/unrendered. No backend, permission or recorder activation is included.
+This is a basic native auth/solo-Groups frontend foundation for backend integration; complete reference replication and decorative polish are deferred. The focused carousel follow-up removes the numeric counter and adds cyclic controls plus a guarded native endpoint-pull wrap. See [the source scope and gesture-validation boundary](auth-groups-reference-refresh.md). The new carousel source is uncompiled/unrun; prior b9 results verify only the earlier finite carousel, not this head. No backend, permission or recorder activation is included.
 
 This child of the local-recorder foundation implements the native screen and state boundary only. The production entry constructs `AppSession(services: .production)`, not `RecorderModel`. Production services explicitly report that real sign-in is not configured. Entering an email must not synthesize an account or a group. No SDK, key, backend migration, Auth request or demo sign-in has been added.
 
