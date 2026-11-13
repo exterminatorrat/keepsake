@@ -76,11 +76,14 @@ final class WaveOneReferenceRenderTests: XCTestCase {
         let scene = try XCTUnwrap(scenes.count == 1 ? scenes.first : nil)
         let you = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
         let maya = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
-        let cases: [(name: String, root: Bool, external: Bool)] = [
-            ("PG-A-contained-initial", false, false),
-            ("PG-B-root-initial", true, false),
-            ("PG-C-contained-external", false, true),
-            ("PG-D-root-external", true, true)
+        let jin = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
+        let cases: [(name: String, root: Bool, external: Bool, index: Int, target: UUID)] = [
+            ("PG-A-contained-initial", false, false, 1, maya),
+            ("PG-B-root-initial", true, false, 1, maya),
+            ("PG-C-contained-external", false, true, 0, maya),
+            ("PG-D-root-external", true, true, 0, maya),
+            ("PG-E-contained-initial-first", false, false, 0, you),
+            ("PG-F-contained-initial-last", false, false, 2, jin)
         ]
         for item in cases {
             let previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
@@ -89,7 +92,7 @@ final class WaveOneReferenceRenderTests: XCTestCase {
             window.overrideUserInterfaceStyle = .light
             let control = PagerBindingDiagnosticControl()
             let controller = ReferenceFixtureController(rootView: AnyView(
-                GroupMemberPagerPreview(index: item.external ? 0 : 1, onSelectionAvailable: { binding in
+                GroupMemberPagerPreview(index: item.index, onSelectionAvailable: { binding in
                     control.binding = binding
                     control.bindingExportCount += 1
                 })
@@ -169,17 +172,17 @@ final class WaveOneReferenceRenderTests: XCTestCase {
                     terminalAttempted = false
                 }
             } else {
-                terminal = await sample(expectedID: maya)
+                terminal = await sample(expectedID: item.target)
                 terminalSourcePhase = terminalName
                 terminalAttempted = true
             }
-            _ = try retain(name: terminalName, intendedID: maya, state: terminal, sourcePhase: terminalSourcePhase, attempted: terminalAttempted)
+            _ = try retain(name: terminalName, intendedID: item.target, state: terminal, sourcePhase: terminalSourcePhase, attempted: terminalAttempted)
             XCTAssertTrue(terminalAttempted, "No terminal request was attempted for \(item.name)")
             XCTAssertEqual(control.externalWriteCount, item.external && terminalAttempted ? 1 : 0)
             if terminalAttempted {
-                XCTAssertEqual(control.binding?.wrappedValue?.rawValue, maya, "Wrong selected target for \(item.name)")
+                XCTAssertEqual(control.binding?.wrappedValue?.rawValue, item.target, "Wrong selected target for \(item.name)")
                 XCTAssertTrue(terminal.isReady, "Unsettled terminal for \(item.name): \(terminal)")
-                XCTAssertEqual(terminal.memberViewport?.centeredID, maya, "Wrong visible terminal member for \(item.name)")
+                XCTAssertEqual(terminal.memberViewport?.centeredID, item.target, "Wrong visible terminal member for \(item.name)")
                 XCTAssertTrue(terminal.memberScroll?.isObservable == true, "Unobservable native scroll owner for \(item.name)")
             }
         }

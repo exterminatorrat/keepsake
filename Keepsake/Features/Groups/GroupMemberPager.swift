@@ -19,28 +19,36 @@ struct GroupMemberPager: View {
                 card(member)
                     .padding(.horizontal, GroupMemberLayout.sideInset)
             } else if !members.isEmpty {
-                ScrollView(.horizontal) {
-                    HStack(alignment: .bottom, spacing: GroupMemberLayout.spacing) {
-                        ForEach(members) { member in
-                            card(member)
-                                .frame(width: GroupMemberLayout.cardWidth(in: availableWidth))
-                                #if DEBUG
-                                .background { GroupMemberLayoutProbe(memberID: member.id) }
-                                #endif
-                                .accessibilityHidden(member.id != selection)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .bottom, spacing: GroupMemberLayout.spacing) {
+                            ForEach(members) { member in
+                                card(member)
+                                    .frame(width: GroupMemberLayout.cardWidth(in: availableWidth))
+                                    .id(member.id)
+                                    #if DEBUG
+                                    .background { GroupMemberLayoutProbe(memberID: member.id) }
+                                    #endif
+                                    .accessibilityHidden(member.id != selection)
+                            }
+                        }
+                        .scrollTargetLayout()
+                    }
+                    .contentMargins(.horizontal, GroupMemberLayout.sideInset, for: .scrollContent)
+                    .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+                    .scrollPosition(id: $selection, anchor: .center)
+                    .scrollIndicators(.hidden)
+                    .scrollClipDisabled()
+                    .fixedSize(horizontal: false, vertical: true)
+                    #if DEBUG
+                    .background { GroupMemberLayoutProbe(memberID: nil) }
+                    #endif
+                    .onAppear {
+                        if let target = GroupMemberSelection.initialViewportTarget(selection, available: members.map(\.id)) {
+                            proxy.scrollTo(target, anchor: .center)
                         }
                     }
-                    .scrollTargetLayout()
                 }
-                .contentMargins(.horizontal, GroupMemberLayout.sideInset, for: .scrollContent)
-                .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-                .scrollPosition(id: $selection, anchor: .center)
-                .scrollIndicators(.hidden)
-                .scrollClipDisabled()
-                .fixedSize(horizontal: false, vertical: true)
-                #if DEBUG
-                .background { GroupMemberLayoutProbe(memberID: nil) }
-                #endif
                 pagination
             }
         }

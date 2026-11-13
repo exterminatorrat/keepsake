@@ -23,6 +23,11 @@ enum GroupMemberLayout {
 }
 
 enum GroupMemberSelection {
+    static func initialViewportTarget(_ selected: AccountID?, available: [AccountID]) -> AccountID? {
+        guard let selected, available.contains(selected) else { return nil }
+        return selected
+    }
+
     static func reconciled(_ selected: AccountID?, available: [AccountID]) -> AccountID? {
         if let selected, available.contains(selected) { return selected }
         return available.first

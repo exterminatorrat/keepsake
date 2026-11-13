@@ -67,4 +67,31 @@ struct GroupMemberSelectionTests {
         #expect(GroupMemberLayout.spacing < GroupMemberLayout.sideInset)
         #expect(GroupMemberLayout.headerTopInset >= 0 && GroupMemberLayout.headerTopInset < 10)
     }
+
+    @Test(arguments: [0, 1, 2])
+    func initialViewportTargetsFirstMiddleAndLastCurrentSelections(index: Int) {
+        let third = AccountID(rawValue: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!)
+        let available = [first, second, third]
+        #expect(GroupMemberSelection.initialViewportTarget(available[index], available: available) == available[index])
+    }
+
+    @Test func initialViewportDoesNotInventOrResurrectMissingSelections() {
+        #expect(GroupMemberSelection.initialViewportTarget(nil, available: [first, second]) == nil)
+        #expect(GroupMemberSelection.initialViewportTarget(second, available: [first]) == nil)
+        #expect(GroupMemberSelection.initialViewportTarget(first, available: []) == nil)
+    }
+
+    @Test func reentryViewportReadsCurrentSelectionMembershipAndAccountLifetime() {
+        var navigation = GroupsNavigation(accountID: first)
+        navigation.selectMember(first, available: [first, second])
+        #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [first, second]) == first)
+        navigation.selectMember(second, available: [first, second])
+        #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [second, first]) == second)
+        #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [first]) == nil)
+        let reset = navigation.reset(for: first, generation: UUID())
+        #expect(reset)
+        #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [first, second]) == nil)
+        navigation.selectMember(first, available: [first])
+        #expect(GroupMemberSelection.initialViewportTarget(navigation.selectedMemberID, available: [first]) == first)
+    }
 }
