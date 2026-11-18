@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F70000000000000000000001 = {isa = PBXBuildFile; fileRef = F71000000000000000000001; };
+		F70000000000000000000002 = {isa = PBXBuildFile; fileRef = F71000000000000000000002; };
+		F70000000000000000000003 = {isa = PBXBuildFile; fileRef = F71000000000000000000003; };
+		F70000000000000000000004 = {isa = PBXBuildFile; fileRef = F71000000000000000000004; };
+		F70000000000000000000005 = {isa = PBXBuildFile; productRef = F74000000000000000000001; };
+		F70000000000000000000006 = {isa = PBXBuildFile; productRef = F74000000000000000000001; };
 		F50000000000000000000001 /* AuthPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000001 /* AuthPresentation.swift */; };
 		F50000000000000000000002 /* AuthComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* AuthComponents.swift */; };
 		F50000000000000000000003 /* AuthOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000003 /* AuthOnboardingView.swift */; };
@@ -75,6 +81,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F71000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keepsake/App/SupabaseBackend.swift; sourceTree = SOURCE_ROOT; };
+		F71000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keepsake/App/AccountGroupCache.swift; sourceTree = SOURCE_ROOT; };
+		F71000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepsakeTests/SliceOneLifecycleTests.swift; sourceTree = SOURCE_ROOT; };
+		F71000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepsakeTests/SliceOneStorageTests.swift; sourceTree = SOURCE_ROOT; };
 		F60000000000000000000001 /* AuthPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthPresentation.swift"; sourceTree = "<group>"; };
 		F60000000000000000000002 /* AuthComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthComponents.swift"; sourceTree = "<group>"; };
 		F60000000000000000000003 /* AuthOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Auth/AuthOnboardingView.swift"; sourceTree = "<group>"; };
@@ -135,6 +145,12 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		F72000000000000000000001 = {
+			isa = PBXGroup;
+			name = "Slice 1 Identity and Groups";
+			sourceTree = "<group>";
+			children = (F71000000000000000000001, F71000000000000000000002, F71000000000000000000003, F71000000000000000000004);
+		};
 		0391C42A9A385D4B45501AF7 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -146,6 +162,7 @@
 		03B0034BECF5239C4307E058 = {
 			isa = PBXGroup;
 			children = (
+				F72000000000000000000001,
 				05581C82067A74F19AEBAD82 /* Keepsake */,
 				61E881E289660690541A7630 /* KeepsakeTests */,
 				E98F53CDBF775DF451783B0B /* Products */,
@@ -277,6 +294,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 90333AD73626B9F4FA4A1E0C /* Build configuration list for PBXNativeTarget "KeepsakeTests" */;
 			buildPhases = (
+				F75000000000000000000002,
 				BD06F8DFF0283FE50B6A5A36 /* Sources */,
 			);
 			buildRules = (
@@ -286,6 +304,7 @@
 			);
 			name = KeepsakeTests;
 			packageProductDependencies = (
+				F74000000000000000000001,
 			);
 			productName = KeepsakeTests;
 			productReference = BDD17F5C35C92C9DA45D1046 /* KeepsakeTests.xctest */;
@@ -295,6 +314,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 34BA2D16555DDF1D026BBB8A /* Build configuration list for PBXNativeTarget "Keepsake" */;
 			buildPhases = (
+				F75000000000000000000001,
 				F27401B85256B7F1706D67E3 /* Sources */,
 			);
 			buildRules = (
@@ -303,6 +323,7 @@
 			);
 			name = Keepsake;
 			packageProductDependencies = (
+				F74000000000000000000001,
 			);
 			productName = Keepsake;
 			productReference = BA599FFC0C68860365658138 /* Keepsake.app */;
@@ -325,6 +346,7 @@
 				en,
 			);
 			mainGroup = 03B0034BECF5239C4307E058;
+			packageReferences = (F73000000000000000000001);
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98F53CDBF775DF451783B0B /* Products */;
@@ -342,6 +364,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F70000000000000000000003,
+				F70000000000000000000004,
 				F50000000000000000000006 /* AuthPresentationTests.swift in Sources */,
 				F50000000000000000000007 /* GroupMemberSelectionTests.swift in Sources */,
 				F30000000000000000000002 /* GroupSheetLayoutTests.swift in Sources */,
@@ -364,6 +388,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F70000000000000000000001,
+				F70000000000000000000002,
 				F50000000000000000000001 /* AuthPresentation.swift in Sources */,
 				F50000000000000000000002 /* AuthComponents.swift in Sources */,
 				F50000000000000000000003 /* AuthOnboardingView.swift in Sources */,
@@ -408,6 +434,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F75000000000000000000001 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (F70000000000000000000005); runOnlyForDeploymentPostprocessing = 0; };
+		F75000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (F70000000000000000000006); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F73000000000000000000001 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/supabase/supabase-swift"; requirement = {kind = exactVersion; version = 2.55.6; }; };
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F74000000000000000000001 = {isa = XCSwiftPackageProductDependency; package = F73000000000000000000001; productName = Supabase; };
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXTargetDependency section */
 		1906ECFCD9159245C39FA58C /* PBXTargetDependency */ = {
@@ -486,6 +525,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_APP_BUNDLE_IDENTIFIER)";
+				KEEPSAKE_ENVIRONMENT = development;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
@@ -524,6 +564,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(KEEPSAKE_APP_BUNDLE_IDENTIFIER)";
+				KEEPSAKE_ENVIRONMENT = development;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
