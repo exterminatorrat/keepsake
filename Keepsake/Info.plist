@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>KeepsakeSupabaseURL</key>
+	<string>$(KEEPSAKE_SUPABASE_URL)</string>
+	<key>KeepsakeSupabasePublishableKey</key>
+	<string>$(KEEPSAKE_SUPABASE_PUBLISHABLE_KEY)</string>
+	<key>KeepsakeEnvironment</key>
+	<string>$(KEEPSAKE_ENVIRONMENT)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Keepsake</string>
 	<key>CFBundleExecutable</key>

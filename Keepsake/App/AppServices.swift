@@ -7,6 +7,9 @@ enum AppServiceError: Error, Equatable, Sendable {
     case rejected(String)
     case outcomeUncertain
     case invalidResponse
+    case localStorage
+    case groupExists
+    case remoteSignOutUnconfirmed
 
     var message: String {
         switch self {
@@ -22,15 +25,26 @@ enum AppServiceError: Error, Equatable, Sendable {
             "The result could not be confirmed. Check status before trying again."
         case .invalidResponse:
             "Your account data could not be verified. Please try again."
+        case .localStorage:
+            "Protected local storage could not be verified. Retry before continuing."
+        case .groupExists:
+            "This account already has a group. Reload to see it."
+        case .remoteSignOutUnconfirmed:
+            "Signed out on this device. Remote session revocation could not be confirmed."
         }
     }
 }
 
 protocol IdentityService: Sendable {
+    func prepareForSignOut(account: AccountID?) throws
     func restore() async throws -> AccountIdentity?
     func sendEmailCode(to email: String) async throws
     func verifyEmailCode(_ code: String, email: String) async throws -> AccountIdentity
     func signOutOnThisDevice() async throws
+}
+
+extension IdentityService {
+    func prepareForSignOut(account: AccountID?) throws {}
 }
 
 protocol GroupService: Sendable {
@@ -38,12 +52,25 @@ protocol GroupService: Sendable {
     func createSoloGroup(_ intent: GroupCreateIntent, for context: AccountContext) async throws -> SoloGroup
 }
 
+protocol IdentityEventSource: Sendable {
+    func changes() async throws -> AsyncStream<Void>
+}
+
 struct AppServices: Sendable {
     let identity: any IdentityService
     let groups: any GroupService
+    var cache: (any AccountGroupCaching)? = nil
 
     static var production: Self {
-        Self(identity: UnconfiguredIdentityService(), groups: UnconfiguredGroupService())
+        do {
+            let configuration = try BackendConfiguration(info: Bundle.main.infoDictionary ?? [:])
+            let cache = try AccountGroupCache(namespace: configuration.namespace)
+            let backend = SupabaseBackend(configuration: configuration, cache: cache,
+                latch: LocalSignOutLatch(url: cache.root.appendingPathComponent("local-signout.json")))
+            return Self(identity: backend, groups: backend, cache: cache)
+        } catch {
+            return Self(identity: UnconfiguredIdentityService(), groups: UnconfiguredGroupService())
+        }
     }
 }
 

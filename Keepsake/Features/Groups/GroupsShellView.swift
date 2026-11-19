@@ -8,6 +8,8 @@ struct GroupsShellView: View {
     private let onRetry: () -> Void
     private let onSignOut: () -> Void
     private let accountGeneration: UUID?
+    private let lastCheckedAt: Date?
+    private let serviceNotice: String?
 
     @State private var navigation: GroupsNavigation
     @State private var draftName = ""
@@ -27,7 +29,9 @@ struct GroupsShellView: View {
         onSignOut: @escaping () -> Void,
         initialPresentation: GroupPresentation = .groupCollapsed,
         initialSelectorOpen: Bool = false,
-        accountGeneration: UUID? = nil
+        accountGeneration: UUID? = nil,
+        lastCheckedAt: Date? = nil,
+        notice: String? = nil
     ) {
         self.account = account
         self.state = state
@@ -35,6 +39,8 @@ struct GroupsShellView: View {
         self.onRetry = onRetry
         self.onSignOut = onSignOut
         self.accountGeneration = accountGeneration
+        self.lastCheckedAt = lastCheckedAt
+        self.serviceNotice = notice
         _navigation = State(
             initialValue: GroupsNavigation(
                 accountID: account.id,
@@ -49,6 +55,17 @@ struct GroupsShellView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { KeepsakeStyle.canvas.ignoresSafeArea() }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let serviceNotice {
+                    Text(serviceNotice).font(.footnote).padding(12)
+                        .frame(maxWidth: .infinity).background(KeepsakeStyle.surface)
+                }
+                if case .ready(_, true) = state, let lastCheckedAt {
+                    Text("Read-only · Last checked \(lastCheckedAt.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.footnote).padding(8).frame(maxWidth: .infinity)
+                        .background(KeepsakeStyle.surface)
+                }
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 GroupTabBar(selection: navigation.tab) { tab in
                     navigation.select(tab: tab)

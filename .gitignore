@@ -17,6 +17,8 @@ xcuserdata/
 *.pem
 .env
 .env.*
+Configuration/Backend.xcconfig
+supabase/.temp/
 *.sqlite
 *.sqlite-*
 *.jsonl

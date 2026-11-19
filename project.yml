@@ -4,10 +4,17 @@ options:
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    exactVersion: 2.55.6
 targets:
   Keepsake:
     type: application
     platform: iOS
+    dependencies:
+      - package: Supabase
+        product: Supabase
     sources:
       - path: Keepsake
         excludes:
@@ -19,6 +26,7 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
+        KEEPSAKE_ENVIRONMENT: development
         TARGETED_DEVICE_FAMILY: "1,2"
         OTHER_LDFLAGS: "$(inherited) -lsqlite3"
   KeepsakeTests:
@@ -28,6 +36,8 @@ targets:
       - path: KeepsakeTests
     dependencies:
       - target: Keepsake
+      - package: Supabase
+        product: Supabase
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.keepsake.app.tests
