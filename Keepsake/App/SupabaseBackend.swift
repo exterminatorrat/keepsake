@@ -145,7 +145,7 @@ actor SupabaseBackend: IdentityService, IdentityEventSource, GroupService {
         if let events { return events }
         let pair = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let handle = try await serialized { client, credentials, latch in
-            guard try latch.read() == nil, !credentials.isLocked() else { throw AppServiceError.localStorage }
+            guard try latch.read() == nil, try !credentials.isLocked() else { throw AppServiceError.localStorage }
             return await client.auth.onAuthStateChange { _, _ in pair.continuation.yield(()) }
         }
         registration = handle
@@ -194,7 +194,7 @@ actor SupabaseBackend: IdentityService, IdentityEventSource, GroupService {
 
     func sendEmailCode(to email: String) async throws {
         try await serialized { client, credentials, latch in
-            guard try latch.read() == nil, !credentials.isLocked() else { throw AppServiceError.localStorage }
+            guard try latch.read() == nil, try !credentials.isLocked() else { throw AppServiceError.localStorage }
             do { try await client.auth.signInWithOTP(email: email, shouldCreateUser: true) }
             catch { throw Self.safeError(error) }
         }
@@ -202,7 +202,7 @@ actor SupabaseBackend: IdentityService, IdentityEventSource, GroupService {
 
     func verifyEmailCode(_ code: String, email: String) async throws -> AccountIdentity {
         try await serialized { client, credentials, latch in
-            guard try latch.read() == nil, !credentials.isLocked() else { throw AppServiceError.localStorage }
+            guard try latch.read() == nil, try !credentials.isLocked() else { throw AppServiceError.localStorage }
             do {
                 let response = try await client.auth.verifyOTP(email: email, token: code, type: .email)
                 guard let session = response.session, !session.isExpired,
@@ -260,10 +260,10 @@ actor SupabaseBackend: IdentityService, IdentityEventSource, GroupService {
     }
 
     private static func authorize(_ client: Clients, _ credentials: AuthCredentialStore, _ latch: LocalSignOutLatch, _ context: AccountContext) async throws -> PostgrestClient {
-        guard try latch.read() == nil, !credentials.isLocked() else { throw AppServiceError.localStorage }
+        guard try latch.read() == nil, try !credentials.isLocked() else { throw AppServiceError.localStorage }
         do {
             let session = try await client.auth.session
-            guard try latch.read() == nil, !credentials.isLocked(),
+            guard try latch.read() == nil, try !credentials.isLocked(),
                   !session.isExpired, session.user.id == context.accountID.rawValue else { throw AppServiceError.invalidResponse }
             return client.database(session: session)
         } catch { throw safeError(error) }
