@@ -18,14 +18,14 @@ struct AccountContext: Equatable, Sendable {
     let generation: UUID
 }
 
-struct SoloGroup: Identifiable, Equatable, Sendable {
+struct SoloGroup: Identifiable, Equatable, Codable, Sendable {
     let id: GroupID
     let ownerID: AccountID
     let name: String
     let createdAt: Date
 }
 
-struct GroupCreateIntent: Equatable, Sendable {
+struct GroupCreateIntent: Equatable, Codable, Sendable {
     let operationID: UUID
     let normalizedName: String
 }
