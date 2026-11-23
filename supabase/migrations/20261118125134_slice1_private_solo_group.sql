@@ -40,9 +40,18 @@ alter table public.group_members force row level security;
 
 revoke all on public.groups, public.group_members from public, anon, authenticated;
 grant select on public.groups, public.group_members to authenticated;
-grant usage on schema public, auth, private to keepsake_group_writer;
-grant execute on function auth.uid(), auth.role() to keepsake_group_writer;
+grant usage on schema public, private to keepsake_group_writer;
 grant select, insert on public.groups, public.group_members to keepsake_group_writer;
+
+create function private.current_auth_context()
+returns table(user_id uuid, user_role text)
+language sql stable security invoker set search_path = ''
+begin atomic
+  select auth.uid(), auth.role();
+end;
+revoke all on function private.current_auth_context() from public, anon, authenticated, service_role;
+grant execute on function private.current_auth_context() to keepsake_group_writer;
+
 create policy groups_read_self on public.groups for select to authenticated, keepsake_group_writer
   using (owner_id = (select auth.uid()));
 create policy group_members_read_self on public.group_members for select to authenticated, keepsake_group_writer
@@ -57,12 +66,14 @@ returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
-  v_owner uuid := auth.uid();
+  v_owner uuid;
+  v_role text;
   v_name text;
   v_group public.groups%rowtype;
   v_outcome text;
 begin
-  if v_owner is null or auth.role() is distinct from 'authenticated' then
+  select user_id, user_role into v_owner, v_role from private.current_auth_context();
+  if v_owner is null or v_role is distinct from 'authenticated' then
     raise exception using errcode = '42501', message = 'authentication_required';
   end if;
   if p_operation_id is null or p_name is null or octet_length(p_name) > 4096 then
@@ -100,12 +111,15 @@ begin
 end;
 $$;
 
-grant create on schema private to keepsake_group_writer;
-alter function private.create_solo_group_impl(uuid, text) owner to keepsake_group_writer;
-revoke create on schema private from keepsake_group_writer;
 revoke all on function private.create_solo_group_impl(uuid, text) from public, anon, authenticated;
 grant usage on schema private to authenticated;
 grant execute on function private.create_solo_group_impl(uuid, text) to authenticated;
+
+grant keepsake_group_writer to current_user with inherit false, set true;
+grant create on schema private to keepsake_group_writer;
+alter function private.create_solo_group_impl(uuid, text) owner to keepsake_group_writer;
+revoke create on schema private from keepsake_group_writer;
+grant keepsake_group_writer to current_user with set false;
 
 create function public.create_solo_group(p_operation_id uuid, p_name text)
 returns jsonb language sql security invoker set search_path = ''
