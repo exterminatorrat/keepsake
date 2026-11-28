@@ -107,8 +107,9 @@ uncertainty, already-open owner/protection drift, symlinks, and legacy rejection
 Simulator fixtures model the protection read seam; hardware branches keep the
 real read. Temporary corruption/deletion is restricted to each test's own root.
 
-Actual checks passed: exact five-file scope and whitespace; byte continuity for
-all 47 other baseline files; and Python SQLite 3.54.0 models using the extracted
+At the original `36b6fa4` source checkpoint, checks passed for exact five-file
+scope and whitespace; byte continuity for all 47 other baseline files; and
+Python SQLite 3.54.0 models using the extracted
 schema/owner queries (profiles 1/2/3 integrity, own/foreign/missing proof,
 schema+metadata rollback, and DELETE/WAL header bytes). These are source/data
 checks, not execution of the Swift implementation. One focused read-only
@@ -116,11 +117,22 @@ checks, not execution of the Swift implementation. One focused read-only
 
 No Swift compiler, Xcode, simulator, device, app, permission prompt, backend,
 route capture, or native test ran for this checkpoint. Data/source checks are
-not Swift behavior. The new files are not registered in the checked-in Xcode
-projects or the explicit StorageValidation YAML; project/target registration
-belongs to the composition owner under the Wave 1 contract. Root `project.yml`
-uses directory sources, but regeneration has not run. An existing-target run
-without deliberate registration would not execute the new suite.
+not Swift behavior. Under the Captain's explicit narrow registration delegation,
+the new storage source and tests are now registered in both checked-in Xcode
+projects and the explicit StorageValidation YAML. Existing scheme/test-host
+settings are unchanged. Root `project.yml` already covers both files through its
+directory sources; it was not edited and regeneration has not run.
+Registration checks passed: plist project syntax, duplicate-free object/source
+membership and resolved paths, scheme XML references, YAML/target agreement,
+and a four-file-only follow-up with 48 other files unchanged from `36b6fa4`.
+
+Use the existing `KeepsakeStorageValidation` scheme for future coordinated
+verification, not the product `Keepsake` scheme. Its only app entry is the inert
+`StorageValidationApp` text view; it excludes `KeepsakeApp`, `RouteHomeView`, and
+`LocalCaptureExperimentHost`. Build-for-testing does not launch a host; actual
+XCTest execution launches `KeepsakeStorageValidation.app` with the synthetic test
+bundle. Compiled recorder types alone do not instantiate a recorder. The product
+scheme's inherited startup can load/prune legacy archives and must not run.
 
 All previous evidence stays at its original head: the historical `f92b36c` full
 run had 95 passing declarations and one failed fixture; `d48c32e` passed only the
@@ -143,9 +155,10 @@ were changed.
    the old immutable store until Stop, admitted writes, task join, and store
    closure are proven. Authentication of B may complete while capture remains
    blocked on A. No old handle may be rebound or released by a late completion.
-4. Author gated Stop/join/crash-boundary tests, then have the composition owner
-   register the new sources and arrange coordinated native verification through
-   the Captain. Do not instantiate this store from Auth or app startup yet.
+4. Author gated Stop/join/crash-boundary tests, and arrange coordinated native
+   verification through the Captain. Source registration is complete; no native
+   execution grant follows from that edit. Do not instantiate this store from
+   Auth or app startup yet.
 
 The inherited PR6 default still instantiates legacy `RecorderModel()` in the
 inactive-experiment branch of `KeepsakeApp`; its initializer can load/prune the
