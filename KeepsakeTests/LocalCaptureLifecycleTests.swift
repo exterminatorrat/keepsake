@@ -165,8 +165,8 @@ struct LocalCaptureLifecycleTests {
         await source.waitForCollectionEnd(stream: 0)
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func stopDuringServicesProbeCannotCreateLateRuntimeResources() async throws {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func stopDuringServicesProbeCannotCreateLateRuntimeResources(dispose: Bool) async throws {
         let store = CoordinatorPersistenceFake()
         let source = LocalCaptureLifecycleLocationSourceFake()
         let authorization = LocalCaptureLifecycleAuthorizationFake(capabilities: capabilities(.always))
@@ -182,16 +182,186 @@ struct LocalCaptureLifecycleTests {
         let epoch = try await lifecycle.startNewRecording(recordingID: UUID())
         await probe.waitForCall()
 
-        _ = try await lifecycle.stop()
+        var returned = false
+        let stop = Task {
+            let result: LocalCaptureStopResult
+            if dispose {
+                result = try await lifecycle.dispose()
+            } else {
+                result = try await lifecycle.stop()
+            }
+            #expect(probe.wasCancelledWhenReturning)
+            #expect(lifecycle.isRuntimeQuiescent)
+            returned = true
+            return result
+        }
+        await store.waitForStopCommit()
+        #expect(!returned)
+        #expect(!lifecycle.isRuntimeQuiescent)
+        #expect(!lifecycle.isAcceptingSamples)
         probe.release()
         await probe.waitForReturn()
+        _ = try await stop.value
 
         #expect(probe.wasCancelledWhenReturning)
         #expect(lifecycle.state == .stopped(controlRevision: epoch.revision + 1))
         #expect(!lifecycle.isAcceptingSamples)
+        #expect(lifecycle.isRuntimeQuiescent)
         #expect(source.streamCount == 0)
         #expect(platform.backgroundActivityHandles.isEmpty)
         #expect(platform.serviceSessionHandles.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func admittedCollectorAppendAndBothCollectorExitsPrecedeQuiescence(dispose: Bool) async throws {
+        let store = CoordinatorPersistenceFake()
+        let source = LocalCaptureLifecycleLocationSourceFake()
+        let locationExit = RecorderQuiescenceGate()
+        let serviceExit = RecorderQuiescenceGate()
+        source.collectionExitGate = locationExit
+        let authorization = LocalCaptureLifecycleAuthorizationFake(capabilities: capabilities(.always))
+        let platform = LocalCaptureLifecycleRuntimePlatformFake()
+        platform.serviceExitGate = serviceExit
+        let lifecycle = try await makeLifecycle(store: store, source: source, authorization: authorization, platform: platform)
+        let epoch = try await lifecycle.startNewRecording(recordingID: UUID())
+        await source.waitForStreamCount(1)
+        await platform.serviceSessionHandles[0].waitForCollectionStart()
+        await store.clearEventLog()
+        await store.gateNextAppend()
+        await store.gateNextStop()
+        source.yield(makeUpdate(seconds: 4_000), to: 0)
+        await store.waitForAppendCall()
+
+        let stopping = RecorderQuiescenceGate()
+        lifecycle.onChange = { [weak lifecycle] in
+            if let lifecycle, case .stopping = lifecycle.state { stopping.open() }
+        }
+        var returned = false
+        let stop = Task {
+            let result: LocalCaptureStopResult
+            if dispose {
+                result = try await lifecycle.dispose()
+            } else {
+                result = try await lifecycle.stop()
+            }
+            #expect(source.didEndCollection(stream: 0))
+            #expect(platform.serviceSessionHandles[0].isCollectionEnded)
+            returned = true
+            return result
+        }
+        await stopping.wait()
+        await serviceExit.waitUntilWaiting()
+        #expect(platform.backgroundActivityHandles[0].isInvalidated)
+        #expect(platform.serviceSessionHandles[0].isInvalidated)
+        #expect(!lifecycle.isAcceptingSamples)
+        #expect(await store.stopCallCount() == 0)
+        #expect(lifecycle.pendingSampleCount == 1)
+        await store.releaseAppend()
+        await store.waitForStopCall()
+        await locationExit.waitUntilWaiting()
+        #expect(lifecycle.pendingSampleCount == 0)
+        #expect(!returned)
+        await store.releaseStop()
+        await store.waitForStopCommit()
+        #expect(!returned)
+        #expect(!lifecycle.isRuntimeQuiescent)
+        locationExit.open()
+        await source.waitForCollectionEnd(stream: 0)
+        #expect(!returned)
+        #expect(!lifecycle.isRuntimeQuiescent)
+        serviceExit.open()
+        guard case .stopped(let receipt) = try await stop.value else {
+            Issue.record("Stop returned no verified receipt")
+            return
+        }
+        #expect(receipt.epoch == epoch)
+        #expect(lifecycle.isRuntimeQuiescent)
+        #expect(platform.serviceSessionHandles[0].isCollectionEnded)
+        #expect(await store.eventLog() == ["append.started", "append.committed", "stop.started", "stop.committed"])
+        #expect(await source.deliver(makeUpdate(seconds: 4_001), to: 0) == false)
+        #expect(await store.appendCallCount() == 1)
+        lifecycle.onChange = nil
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func collectorInterruptionCallbackCanRequestStopWithoutAwaitingItsOwnJoin() async throws {
+        let store = CoordinatorPersistenceFake()
+        let source = LocalCaptureLifecycleLocationSourceFake()
+        let exit = RecorderQuiescenceGate()
+        source.collectionExitGate = exit
+        let authorization = LocalCaptureLifecycleAuthorizationFake(capabilities: capabilities(.whileInUse))
+        let platform = LocalCaptureLifecycleRuntimePlatformFake()
+        let lifecycle = try await makeLifecycle(store: store, source: source, authorization: authorization, platform: platform)
+        _ = try await lifecycle.startNewRecording(recordingID: UUID())
+        await source.waitForStreamCount(1)
+        var callbackStop: Task<LocalCaptureStopResult, any Error>?
+        lifecycle.onChange = { [weak lifecycle] in
+            guard let lifecycle, case .resumeRequired = lifecycle.state, callbackStop == nil else { return }
+            callbackStop = Task { try await lifecycle.stop() }
+        }
+        source.yield(RecorderLocationUpdate(location: nil, stationary: false, authorizationDenied: true), to: 0)
+        await exit.waitUntilWaiting()
+        await store.waitForStopCommit()
+        #expect(lifecycle.lastInterruption == .authorizationLost)
+        #expect(!lifecycle.isAcceptingSamples)
+        #expect(!lifecycle.isRuntimeQuiescent)
+        let stop = try #require(callbackStop)
+        exit.open()
+        _ = try await stop.value
+        #expect(lifecycle.isRuntimeQuiescent)
+        #expect(await store.stopCallCount() == 1)
+        lifecycle.onChange = nil
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func resourceFactoryReentryCannotLeaveLateOwnedHandles(serviceFactory: Bool) async throws {
+        let store = CoordinatorPersistenceFake()
+        let source = LocalCaptureLifecycleLocationSourceFake()
+        let authorization = LocalCaptureLifecycleAuthorizationFake(capabilities: capabilities(.always))
+        let platform = LocalCaptureLifecycleRuntimePlatformFake()
+        let created = RecorderQuiescenceGate()
+        let interrupt = {
+            authorization.update(capabilities(.denied))
+            created.open()
+        }
+        if serviceFactory {
+            platform.onMakeServiceSession = { [weak platform] in
+                interrupt()
+                #expect(platform?.backgroundActivityHandles.first?.isInvalidated == true)
+            }
+        } else {
+            platform.onMakeBackgroundActivity = interrupt
+        }
+        let lifecycle = try await makeLifecycle(store: store, source: source, authorization: authorization, platform: platform)
+        _ = try await lifecycle.startNewRecording(recordingID: UUID())
+        await created.wait()
+        _ = try await lifecycle.stop()
+        #expect(lifecycle.isRuntimeQuiescent)
+        #expect(source.streamCount == 0)
+        #expect(platform.backgroundActivityHandles.count == 1)
+        #expect(platform.backgroundActivityHandles.allSatisfy(\.isInvalidated))
+        #expect(platform.serviceSessionHandles.count == (serviceFactory ? 1 : 0))
+        #expect(platform.serviceSessionHandles.allSatisfy(\.isInvalidated))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disposedFacadeRejectsStartBeforeRequestingPermission() async throws {
+        let store = CoordinatorPersistenceFake()
+        let source = LocalCaptureLifecycleLocationSourceFake()
+        let authorization = LocalCaptureLifecycleAuthorizationFake(capabilities: capabilities(.notDetermined))
+        let platform = LocalCaptureLifecycleRuntimePlatformFake()
+        let lifecycle = try await makeLifecycle(store: store, source: source, authorization: authorization, platform: platform)
+        _ = try await lifecycle.dispose()
+        do {
+            _ = try await lifecycle.startNewRecording(recordingID: UUID())
+            Issue.record("Disposed facade admitted Start")
+        } catch {
+            #expect(error as? LocalCaptureCoordinatorError == .disposed)
+        }
+        #expect(authorization.requestCount == 0)
+        #expect(await store.beginCallCount() == 0)
+        #expect(source.streamCount == 0)
+        #expect(lifecycle.isRuntimeQuiescent)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -491,6 +661,7 @@ private func expectLifecycleError<Value>(
 
 @MainActor
 private final class LocalCaptureLifecycleLocationSourceFake: RecorderLocationUpdateSource {
+    var collectionExitGate: RecorderQuiescenceGate?
     private var continuations: [AsyncThrowingStream<RecorderLocationUpdate, Error>.Continuation] = []
     private var receivers: [@MainActor (RecorderLocationUpdate) async -> Bool] = []
     private var endedCollections: Set<Int> = []
@@ -533,6 +704,11 @@ private final class LocalCaptureLifecycleLocationSourceFake: RecorderLocationUpd
         } onCancel: {
             continuation.finish()
         }
+        await collectionExitGate?.wait()
+    }
+
+    func yield(_ update: RecorderLocationUpdate, to stream: Int) {
+        continuations[stream].yield(update)
     }
 
     func deliver(_ update: RecorderLocationUpdate, to stream: Int) async -> Bool {
@@ -555,6 +731,10 @@ private final class LocalCaptureLifecycleLocationSourceFake: RecorderLocationUpd
             return
         }
         await withCheckedContinuation { collectionEndWaiters.append((stream, $0)) }
+    }
+
+    func didEndCollection(stream: Int) -> Bool {
+        endedCollections.contains(stream)
     }
 }
 
@@ -621,18 +801,23 @@ private final class LocalCaptureLifecycleAuthorizationFake: RecorderAuthorizatio
 
 @MainActor
 private final class LocalCaptureLifecycleRuntimePlatformFake: RecorderRuntimePlatform {
+    var serviceExitGate: RecorderQuiescenceGate?
+    var onMakeBackgroundActivity: (@MainActor () -> Void)?
+    var onMakeServiceSession: (@MainActor () -> Void)?
     private(set) var backgroundActivityHandles: [LocalCaptureLifecycleBackgroundActivityFake] = []
     private(set) var serviceSessionHandles: [LocalCaptureLifecycleServiceSessionFake] = []
 
     func makeBackgroundActivityHandle() -> any RecorderBackgroundActivityHandle {
         let handle = LocalCaptureLifecycleBackgroundActivityFake()
         backgroundActivityHandles.append(handle)
+        onMakeBackgroundActivity?()
         return handle
     }
 
     func makeServiceSessionHandle() -> any RecorderServiceSessionHandle {
-        let handle = LocalCaptureLifecycleServiceSessionFake()
+        let handle = LocalCaptureLifecycleServiceSessionFake(exitGate: serviceExitGate)
         serviceSessionHandles.append(handle)
+        onMakeServiceSession?()
         return handle
     }
 }
@@ -673,12 +858,17 @@ private final class LocalCaptureLifecycleWeakReference {
 
 @MainActor
 private final class LocalCaptureLifecycleServiceSessionFake: RecorderServiceSessionHandle {
+    private let exitGate: RecorderQuiescenceGate?
     private var diagnosticContinuation: AsyncThrowingStream<RecorderServiceDiagnostic, Error>.Continuation?
     private var collectionStartWaiters: [CheckedContinuation<Void, Never>] = []
     private var collectionEndWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var isCollectionStarted = false
     private(set) var isCollectionEnded = false
     private(set) var isInvalidated = false
+
+    init(exitGate: RecorderQuiescenceGate?) {
+        self.exitGate = exitGate
+    }
 
     func collectDiagnostics(
         _ receive: @escaping @MainActor (RecorderServiceDiagnostic) async -> Void
@@ -709,6 +899,7 @@ private final class LocalCaptureLifecycleServiceSessionFake: RecorderServiceSess
         for try await diagnostic in stream {
             await receive(diagnostic)
         }
+        await exitGate?.wait()
     }
 
     func invalidate() {

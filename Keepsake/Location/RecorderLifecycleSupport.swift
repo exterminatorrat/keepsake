@@ -89,12 +89,14 @@ final class RecorderTaskLifetime: Sendable {
         _ = tasks.withLock { $0.removeValue(forKey: generation) }
     }
 
-    func cancelAll() {
+    @discardableResult
+    func cancelAll() -> [Task<Void, Never>] {
         let activeTasks = tasks.withLock { tasks in
             defer { tasks.removeAll() }
             return Array(tasks.values)
         }
         activeTasks.forEach { $0.cancel() }
+        return activeTasks
     }
 }
 
