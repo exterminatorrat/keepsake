@@ -24,6 +24,8 @@ enum RouteStoreError: Error, Equatable, Sendable {
     case storeClosed
     case manifestMissing
     case invalidManifest
+    case ownerMismatch
+    case incompleteAccountStore
     case unsupportedSchema
     case corruptDatabase
     case unreadableSource
@@ -60,6 +62,14 @@ actor RouteStore {
 
     static func openFoundation(at rootURL: URL, seams: RouteStoreSeams = RouteStoreSeams()) throws -> RouteStore {
         RouteStore(core: try RouteStoreCore(rootURL: rootURL, setup: .openFoundation, seams: seams))
+    }
+
+    static func createAccountStore(at rootURL: URL, ownerAccountUUID: UUID, seams: RouteStoreSeams) throws -> RouteStore {
+        RouteStore(core: try RouteStoreCore(rootURL: rootURL, setup: .createAccount(ownerAccountUUID), seams: seams))
+    }
+
+    static func openAccountStore(at rootURL: URL, ownerAccountUUID: UUID, seams: RouteStoreSeams) throws -> RouteStore {
+        RouteStore(core: try RouteStoreCore(rootURL: rootURL, setup: .openAccount(ownerAccountUUID), seams: seams))
     }
 
     static func migrateStoppedLegacyFile(
@@ -219,6 +229,7 @@ private final class RouteStoreCore {
     private let databaseURL: URL
     private let seams: RouteStoreSeams
     private let schemaProfile: RouteStoreSchemaProfile
+    private let ownerAccountUUID: UUID?
     private let resources: RouteStoreResourceCapsule
     private let storeOpenID = UUID()
     private var rootIdentity: RouteStoreFileIdentity?
@@ -231,6 +242,7 @@ private final class RouteStoreCore {
         databaseURL = normalizedRootURL.appendingPathComponent(RouteStoreFiles.databaseName, isDirectory: false)
         self.seams = seams
         schemaProfile = setup.schemaProfile
+        ownerAccountUUID = setup.ownerAccountUUID
         resources = RouteStoreResourceCapsule()
 
         do {
@@ -1004,7 +1016,7 @@ private final class RouteStoreCore {
     }
 
     private func requireFoundationStore() throws {
-        guard schemaProfile == .foundation else {
+        guard schemaProfile.isFoundation else {
             throw CapturePersistenceError.notFoundationStore
         }
     }
@@ -1042,9 +1054,9 @@ private final class RouteStoreCore {
             try initializeNewStore()
         case .openExisting:
             try initializeExistingStore()
-        case .createFoundation:
+        case .createFoundation, .createAccount:
             try initializeNewStore()
-        case .openFoundation:
+        case .openFoundation, .openAccount:
             try initializeExistingStore()
         case let .migrate(sourceURL, authorization):
             guard authorization == .stopped else {
@@ -1068,9 +1080,10 @@ private final class RouteStoreCore {
         try RouteStoreSQLite.validateDatabase(
             database: try activeDatabase(),
             migrationAuthorization: nil,
-            profile: schemaProfile
+            profile: schemaProfile,
+            ownerAccountUUID: ownerAccountUUID
         )
-        if schemaProfile == .foundation {
+        if schemaProfile.isFoundation {
             try RouteStoreSQLite.validateCaptureState(try activeDatabase())
         }
         try RouteStoreFiles.synchronizeFile(databaseURL)
@@ -1083,12 +1096,20 @@ private final class RouteStoreCore {
             sourceSnapshot: nil,
             sourceSHA256: nil,
             importedSampleCount: nil,
-            migrationAuthorization: nil
+            migrationAuthorization: nil,
+            ownerAccountUUID: ownerAccountUUID
         )
         try publish(newManifest)
+        if ownerAccountUUID != nil {
+            try validateReadEnvironment()
+        }
     }
 
     private func initializeExistingStore() throws {
+        if ownerAccountUUID != nil {
+            try initializeExistingAccountStore()
+            return
+        }
         rootIdentity = try RouteStoreFiles.validateExistingRoot(rootURL, seams: seams)
         try captureRootDescriptor()
         resources.lockDescriptor = try RouteStoreFiles.acquireExclusiveLock(at: rootURL, seams: seams)
@@ -1146,7 +1167,8 @@ private final class RouteStoreCore {
         try RouteStoreSQLite.validateDatabase(
             database: try activeDatabase(),
             migrationAuthorization: decodedManifest.migrationAuthorization,
-            profile: schemaProfile
+            profile: schemaProfile,
+            ownerAccountUUID: nil
         )
         if schemaProfile == .legacy {
             _ = try RouteStoreSQLite.readSamples(try activeDatabase())
@@ -1154,6 +1176,91 @@ private final class RouteStoreCore {
             try RouteStoreSQLite.validateCaptureState(try activeDatabase())
         }
         try validateStoreIdentities()
+    }
+
+    private func initializeExistingAccountStore() throws {
+        try RouteStoreFiles.validateOwnedDirectory(rootURL, requirePrivate: true)
+        rootIdentity = try RouteStoreFiles.captureIdentity(at: rootURL, directory: true)
+        try captureRootDescriptor()
+        try validateAccountInventory()
+        try verifyCurrentAccountFilesProtection()
+        _ = try readAccountManifest()
+        resources.lockDescriptor = try RouteStoreFiles.acquireExclusiveLock(at: rootURL, seams: seams, create: false)
+        try captureLockIdentity()
+        try captureDatabaseIdentity()
+        try RouteStoreFiles.validateRollbackDatabaseHeader(databaseURL, descriptor: resources.databaseDescriptor)
+
+        let inspection = try RouteStoreSQLite.open(databaseURL, create: false, readOnly: true)
+        do {
+            try validateStoreIdentities()
+            try RouteStoreSQLite.execute(inspection, sql: "PRAGMA temp_store=MEMORY")
+            try RouteStoreSQLite.validateDatabase(
+                database: inspection,
+                migrationAuthorization: nil,
+                profile: schemaProfile,
+                ownerAccountUUID: ownerAccountUUID
+            )
+            try RouteStoreSQLite.validateCaptureState(inspection)
+        } catch {
+            _ = sqlite3_close_v2(inspection)
+            throw error
+        }
+        guard sqlite3_close_v2(inspection) == SQLITE_OK else {
+            throw RouteStoreError.corruptDatabase
+        }
+
+        try validateAccountInventory()
+        try seams.requireCapacity(rootURL, 65_536, .openExisting)
+        resources.database = try RouteStoreSQLite.open(databaseURL, create: false)
+        try RouteStoreSQLite.configureExisting(database: try activeDatabase())
+        try validateReadEnvironment()
+    }
+
+    private func validateAccountInventory() throws {
+        let names = try FileManager.default.contentsOfDirectory(atPath: rootURL.path)
+        guard Set(names) == Set([RouteStoreFiles.databaseName, RouteStoreFiles.manifestName, RouteStoreFiles.lockName]) else {
+            throw RouteStoreError.incompleteAccountStore
+        }
+    }
+
+    private func readAccountManifest() throws -> RouteStoreManifest {
+        let manifestURL = rootURL.appendingPathComponent(RouteStoreFiles.manifestName, isDirectory: false)
+        let data = try RouteStoreFiles.readManifest(at: manifestURL)
+        let manifest: RouteStoreManifest
+        do {
+            manifest = try JSONDecoder().decode(RouteStoreManifest.self, from: data)
+        } catch {
+            throw RouteStoreError.invalidManifest
+        }
+        try validateManifest(manifest)
+        return manifest
+    }
+
+    private func verifyCurrentAccountFilesProtection() throws {
+        guard let ownerAccountUUID,
+              rootURL.lastPathComponent == "LocalCapture-v3",
+              rootURL.deletingLastPathComponent().lastPathComponent == ownerAccountUUID.uuidString.lowercased() else {
+            throw RouteStoreError.unsafePath
+        }
+        var parent = rootURL.deletingLastPathComponent()
+        for component in [ownerAccountUUID.uuidString.lowercased(), "Accounts", "Keepsake"] {
+            guard parent.lastPathComponent == component else {
+                throw RouteStoreError.unsafePath
+            }
+            try verifyProtection(at: parent, directory: true)
+            parent = parent.deletingLastPathComponent()
+        }
+        try verifyCurrentProtection()
+        try verifyProtection(at: rootURL.appendingPathComponent(RouteStoreFiles.manifestName), directory: false)
+    }
+
+    private func validateAccountEnvironment() throws {
+        guard let ownerAccountUUID else {
+            throw RouteStoreError.ownerMismatch
+        }
+        try verifyCurrentAccountFilesProtection()
+        _ = try readAccountManifest()
+        try RouteStoreSQLite.validateAccountOwner(try activeDatabase(), expected: ownerAccountUUID)
     }
 
     private func initializeMigration(
@@ -1227,7 +1334,8 @@ private final class RouteStoreCore {
             sourceSnapshot: RouteStoreFiles.snapshotName,
             sourceSHA256: Self.sha256(snapshot.data),
             importedSampleCount: importedSamples.count,
-            migrationAuthorization: authorization
+            migrationAuthorization: authorization,
+            ownerAccountUUID: nil
         )
         try publish(migratedManifest) {
             try RouteStoreFiles.verifyUnchanged(
@@ -1261,7 +1369,11 @@ private final class RouteStoreCore {
             throw RouteStoreError.invalidManifest
         }
 
-        if schemaProfile == .foundation {
+        guard manifest.ownerAccountUUID == ownerAccountUUID else {
+            throw RouteStoreError.ownerMismatch
+        }
+
+        if schemaProfile.isFoundation {
             guard manifest.sourceSnapshot == nil,
                   manifest.sourceSHA256 == nil,
                   manifest.importedSampleCount == nil,
@@ -1300,6 +1412,9 @@ private final class RouteStoreCore {
         let database = try activeDatabase()
         do {
             try validateStoreIdentities()
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
         } catch {
             releaseResources()
             throw error
@@ -1308,10 +1423,16 @@ private final class RouteStoreCore {
         var commitAttempted = false
         var commitSucceeded = false
         do {
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
             let result = try operation()
             try protectExistingSidecars()
             try seams.fault(.beforeTransactionCommit)
             try validateStoreIdentities()
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
             commitAttempted = true
             try RouteStoreSQLite.execute(database, sql: "COMMIT")
             commitSucceeded = true
@@ -1321,6 +1442,9 @@ private final class RouteStoreCore {
             try RouteStoreFiles.synchronizeFile(databaseURL)
             try seams.fault(.beforeTransactionDirectorySync)
             try RouteStoreFiles.synchronizeDirectory(rootURL)
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
             return result
         } catch {
             if commitSucceeded || (commitAttempted && sqlite3_get_autocommit(database) != 0) {
@@ -1344,10 +1468,13 @@ private final class RouteStoreCore {
                 protectionFailure = .protectionFailed
             }
             if let protectionFailure {
-                if protectionFailure == .unsafePath {
+                if protectionFailure == .unsafePath || ownerAccountUUID != nil {
                     releaseResources()
                 }
                 throw protectionFailure
+            }
+            if ownerAccountUUID != nil {
+                try validateReadEnvironment()
             }
             if let error = error as? CapturePersistenceError {
                 throw error
@@ -1365,6 +1492,9 @@ private final class RouteStoreCore {
         try RouteStoreSQLite.execute(database, sql: "BEGIN")
         let result: T
         do {
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
             result = try operation()
         } catch {
             if sqlite3_get_autocommit(database) == 0 {
@@ -1387,6 +1517,9 @@ private final class RouteStoreCore {
         do {
             try validateStoreIdentities()
             try verifyCurrentProtection()
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
         } catch {
             if sqlite3_get_autocommit(database) == 0 {
                 let rollbackStatus = sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
@@ -1427,6 +1560,9 @@ private final class RouteStoreCore {
         do {
             try validateStoreIdentities()
             try verifyCurrentProtection()
+            if ownerAccountUUID != nil {
+                try validateAccountEnvironment()
+            }
         } catch {
             releaseResources()
             throw error
@@ -1446,26 +1582,7 @@ private final class RouteStoreCore {
     }
 
     private func verifyProtection(at url: URL, directory: Bool) throws {
-        do {
-            if directory {
-                try RouteStoreFiles.validateOwnedDirectory(url, requirePrivate: true)
-            } else {
-                try RouteStoreFiles.validateOwnedRegularFile(url, requirePrivate: true)
-            }
-            guard try seams.readProtection(url) == .completeUntilFirstUserAuthentication else {
-                throw RouteStoreError.protectionFailed
-            }
-            var currentURL = url
-            currentURL.removeCachedResourceValue(forKey: .isExcludedFromBackupKey)
-            let values = try currentURL.resourceValues(forKeys: [.isExcludedFromBackupKey])
-            guard values.isExcludedFromBackup == true else {
-                throw RouteStoreError.backupExclusionFailed
-            }
-        } catch let error as RouteStoreError {
-            throw error
-        } catch {
-            throw RouteStoreError.protectionFailed
-        }
+        try RouteStoreFiles.verifyProtection(at: url, directory: directory, seams: seams)
     }
 
     private func activeDatabase() throws -> OpaquePointer {
@@ -1558,7 +1675,8 @@ private final class RouteStoreCore {
             try RouteStoreSQLite.createSchemaContents(
                 database: database,
                 migrationAuthorization: migrationAuthorization,
-                profile: schemaProfile
+                profile: schemaProfile,
+                ownerAccountUUID: ownerAccountUUID
             )
             try protectExistingSidecars()
             try validateStoreIdentities()
@@ -1646,6 +1764,8 @@ private enum RouteStoreSetup: Sendable {
     case openExisting
     case createFoundation
     case openFoundation
+    case createAccount(UUID)
+    case openAccount(UUID)
     case migrate(sourceURL: URL, authorization: RouteStoreMigrationAuthorization)
 
     var schemaProfile: RouteStoreSchemaProfile {
@@ -1654,6 +1774,17 @@ private enum RouteStoreSetup: Sendable {
             return .legacy
         case .createFoundation, .openFoundation:
             return .foundation
+        case .createAccount, .openAccount:
+            return .accountFoundation
+        }
+    }
+
+    var ownerAccountUUID: UUID? {
+        switch self {
+        case let .createAccount(owner), let .openAccount(owner):
+            return owner
+        default:
+            return nil
         }
     }
 }
@@ -1661,6 +1792,9 @@ private enum RouteStoreSetup: Sendable {
 private enum RouteStoreSchemaProfile: Int32, Equatable, Sendable {
     case legacy = 1
     case foundation = 2
+    case accountFoundation = 3
+
+    var isFoundation: Bool { self != .legacy }
 
     var manifestVersion: Int {
         Int(rawValue)
@@ -1675,6 +1809,7 @@ private struct RouteStoreManifest: Codable, Sendable {
     let sourceSHA256: String?
     let importedSampleCount: Int?
     let migrationAuthorization: RouteStoreMigrationAuthorization?
+    let ownerAccountUUID: UUID?
 }
 
 private struct RouteStoreCaptureReceiptRecord: Sendable {
@@ -1708,9 +1843,9 @@ private enum RouteStoreSQLite {
     private static let captureControlTableSQL = "CREATE TABLE capture_control (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), payload BLOB NOT NULL) WITHOUT ROWID"
     private static let captureReceiptsTableSQL = "CREATE TABLE capture_receipts (sequence INTEGER PRIMARY KEY AUTOINCREMENT, operation_id TEXT NOT NULL UNIQUE, created_at_reference REAL NOT NULL, payload BLOB NOT NULL)"
 
-    static func open(_ url: URL, create: Bool) throws -> OpaquePointer {
+    static func open(_ url: URL, create: Bool, readOnly: Bool = false) throws -> OpaquePointer {
         var database: OpaquePointer?
-        var flags = SQLITE_OPEN_READWRITE
+        var flags = (readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE)
             | SQLITE_OPEN_FULLMUTEX
             | SQLITE_OPEN_FILEPROTECTION_COMPLETEUNTILFIRSTUSERAUTHENTICATION
             | SQLITE_OPEN_NOFOLLOW
@@ -1754,16 +1889,17 @@ private enum RouteStoreSQLite {
     static func createSchemaContents(
         database: OpaquePointer,
         migrationAuthorization: RouteStoreMigrationAuthorization?,
-        profile: RouteStoreSchemaProfile
+        profile: RouteStoreSchemaProfile,
+        ownerAccountUUID: UUID?
     ) throws {
         try execute(database, sql: profile == .legacy ? tableSQL : foundationTableSQL)
         try execute(database, sql: fingerprintIndexSQL)
         try execute(database, sql: recordingIndexSQL)
-        if profile == .foundation {
+        if profile.isFoundation {
             try execute(database, sql: historyOrderIndexSQL)
         }
         try execute(database, sql: metadataTableSQL)
-        if profile == .foundation {
+        if profile.isFoundation {
             try execute(database, sql: captureControlTableSQL)
             try execute(database, sql: captureReceiptsTableSQL)
         }
@@ -1776,9 +1912,17 @@ private enum RouteStoreSQLite {
                 throw map(sqlite3_errcode(database))
             }
         }
+        if let ownerAccountUUID {
+            try withStatement(database, sql: "INSERT INTO route_store_metadata (key, value) VALUES ('owner_account_uuid', ?)") { statement in
+                try bindText(ownerAccountUUID.uuidString.lowercased(), at: 1, to: statement)
+                guard sqlite3_step(statement) == SQLITE_DONE else {
+                    throw map(sqlite3_errcode(database))
+                }
+            }
+        }
         try execute(database, sql: "PRAGMA application_id=1263759793")
         try execute(database, sql: "PRAGMA user_version=\(profile.rawValue)")
-        if profile == .foundation {
+        if profile.isFoundation {
             try insertInitialCaptureControl(database)
         }
     }
@@ -1786,7 +1930,8 @@ private enum RouteStoreSQLite {
     static func validateDatabase(
         database: OpaquePointer,
         migrationAuthorization: RouteStoreMigrationAuthorization?,
-        profile: RouteStoreSchemaProfile
+        profile: RouteStoreSchemaProfile,
+        ownerAccountUUID: UUID?
     ) throws {
         guard try integerValue(database, sql: "PRAGMA application_id") == 1_263_759_793,
               try integerValue(database, sql: "PRAGMA user_version") == Int64(profile.rawValue) else {
@@ -1799,7 +1944,7 @@ private enum RouteStoreSQLite {
             "route_samples_recording_order": normalize(recordingIndexSQL),
             "route_store_metadata": normalize(metadataTableSQL)
         ]
-        if profile == .foundation {
+        if profile.isFoundation {
             expected["route_samples_history_order"] = normalize(historyOrderIndexSQL)
             expected["capture_control"] = normalize(captureControlTableSQL)
             expected["capture_receipts"] = normalize(captureReceiptsTableSQL)
@@ -1815,12 +1960,24 @@ private enum RouteStoreSQLite {
             throw RouteStoreError.invalidManifest
         }
 
+        if let ownerAccountUUID {
+            try validateAccountOwner(database, expected: ownerAccountUUID)
+        }
+
         try withStatement(database, sql: "PRAGMA integrity_check") { statement in
             guard sqlite3_step(statement) == SQLITE_ROW,
                   columnText(statement, 0) == "ok",
                   sqlite3_step(statement) == SQLITE_DONE else {
                 throw RouteStoreError.corruptDatabase
             }
+        }
+    }
+
+    static func validateAccountOwner(_ database: OpaquePointer, expected owner: UUID) throws {
+        guard try integerValue(database, sql: "SELECT COUNT(*) FROM route_store_metadata") == 2,
+              try stringValue(database, sql: "SELECT value FROM route_store_metadata WHERE key = 'owner_account_uuid'") == owner.uuidString.lowercased(),
+              try stringValue(database, sql: "SELECT value FROM route_store_metadata WHERE key = 'migration_authorization'") == "none" else {
+            throw RouteStoreError.ownerMismatch
         }
     }
 

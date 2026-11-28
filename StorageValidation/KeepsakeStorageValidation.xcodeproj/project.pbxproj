@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E40000000000000000000010 /* AccountCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000010 /* AccountCaptureStore.swift */; };
+		E40000000000000000000011 /* AccountCaptureStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000011 /* AccountCaptureStoreTests.swift */; };
 		E4000000000000000000000E /* LocalCaptureLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000E /* LocalCaptureLifecycle.swift */; };
 		E4000000000000000000000F /* LocalCaptureLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3000000000000000000000F /* LocalCaptureLifecycleTests.swift */; };
 		E40000000000000000000008 /* LocalCapturePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30000000000000000000008 /* LocalCapturePersistence.swift */; };
@@ -50,6 +52,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E30000000000000000000010 /* AccountCaptureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCaptureStore.swift; sourceTree = "<group>"; };
+		E30000000000000000000011 /* AccountCaptureStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCaptureStoreTests.swift; sourceTree = "<group>"; };
 		E3000000000000000000000E /* LocalCaptureLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycle.swift; sourceTree = "<group>"; };
 		E3000000000000000000000F /* LocalCaptureLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCaptureLifecycleTests.swift; sourceTree = "<group>"; };
 		E30000000000000000000008 /* LocalCapturePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCapturePersistence.swift; sourceTree = "<group>"; };
@@ -113,6 +117,7 @@
 		5B58DFA14FC6907801328B24 /* Storage */ = {
 			isa = PBXGroup;
 			children = (
+				E30000000000000000000010 /* AccountCaptureStore.swift */,
 				5306C77C9E9139F8594599E5 /* RouteRepository.swift */,
 				E30000000000000000000008 /* LocalCapturePersistence.swift */,
 				D9585910CDC865693A70ADAA /* LocalCaptureHistoryReading.swift */,
@@ -134,6 +139,7 @@
 		D14CA9F04A0B859DE725AF61 /* KeepsakeTests */ = {
 			isa = PBXGroup;
 			children = (
+				E30000000000000000000011 /* AccountCaptureStoreTests.swift */,
 				E30000000000000000000005 /* RouteRepositoryTests.swift */,
 				E3000000000000000000000A /* LocalCapturePersistenceTests.swift */,
 				E3000000000000000000000B /* CapturePersistenceTests.swift */,
@@ -268,6 +274,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E40000000000000000000010 /* AccountCaptureStore.swift in Sources */,
 				E40000000000000000000001 /* RecordingState.swift in Sources */,
 				E40000000000000000000002 /* RecorderModel.swift in Sources */,
 				E40000000000000000000008 /* LocalCapturePersistence.swift in Sources */,
@@ -292,6 +299,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E40000000000000000000011 /* AccountCaptureStoreTests.swift in Sources */,
 				E40000000000000000000005 /* RouteRepositoryTests.swift in Sources */,
 				E4000000000000000000000A /* LocalCapturePersistenceTests.swift in Sources */,
 				E4000000000000000000000B /* CapturePersistenceTests.swift in Sources */,

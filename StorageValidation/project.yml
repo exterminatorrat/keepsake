@@ -30,6 +30,7 @@ targets:
       - path: ../Keepsake/Storage/LocalCaptureHistoryReading.swift
       - path: ../Keepsake/Storage/RouteStore.swift
       - path: ../Keepsake/Storage/RouteStoreFiles.swift
+      - path: ../Keepsake/Storage/AccountCaptureStore.swift
       - path: ../Keepsake/App/LocalCaptureExperiment.swift
     settings:
       base:
@@ -46,6 +47,7 @@ targets:
     platform: iOS
     sources:
       - path: ../KeepsakeTests/RouteStoreTests.swift
+      - path: ../KeepsakeTests/AccountCaptureStoreTests.swift
       - path: ../KeepsakeTests/RouteRepositoryTests.swift
       - path: ../KeepsakeTests/RecorderModelTests.swift
       - path: ../KeepsakeTests/LocationAuthorizationObserverTests.swift
