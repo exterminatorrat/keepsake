@@ -53,6 +53,10 @@ final class LocalCaptureLifecycle {
         coordinator.isAcceptingSamples
     }
 
+    var isRuntimeQuiescent: Bool {
+        coordinator.isRuntimeQuiescent
+    }
+
     var pendingSampleCount: Int {
         coordinator.pendingSampleCount
     }
@@ -98,9 +102,7 @@ final class LocalCaptureLifecycle {
     deinit {
         let coordinator = coordinator
         Task { @MainActor in
-            if case .active(let epoch, let generation, _) = coordinator.state {
-                coordinator.runtimeInterrupted(epoch: epoch, generation: generation)
-            }
+            await coordinator.abandonRuntime()
         }
     }
 
@@ -131,7 +133,10 @@ final class LocalCaptureLifecycle {
     }
 
     func startNewRecording(recordingID: UUID) async throws -> CaptureEpoch {
-        try await perform {
+        guard !coordinator.isDisposed else {
+            throw LocalCaptureCoordinatorError.disposed
+        }
+        return try await perform {
             guard case .stopped = self.coordinator.state else {
                 throw LocalCaptureLifecycleError.notStopped
             }
@@ -141,7 +146,10 @@ final class LocalCaptureLifecycle {
     }
 
     func resume() async throws -> CaptureEpoch {
-        try await perform {
+        guard !coordinator.isDisposed else {
+            throw LocalCaptureCoordinatorError.disposed
+        }
+        return try await perform {
             guard case .resumeRequired(let epoch, _) = self.coordinator.state else {
                 throw LocalCaptureLifecycleError.notResumeRequired
             }
@@ -151,8 +159,27 @@ final class LocalCaptureLifecycle {
     }
 
     func stop() async throws -> LocalCaptureStopResult {
-        try await perform {
+        try await performShutdown {
             try await self.coordinator.stopRecording()
+        }
+    }
+
+    func dispose() async throws -> LocalCaptureStopResult {
+        try await performShutdown {
+            try await self.coordinator.dispose()
+        }
+    }
+
+    private func performShutdown(
+        _ operation: @MainActor () async throws -> LocalCaptureStopResult
+    ) async throws -> LocalCaptureStopResult {
+        do {
+            let result = try await operation()
+            lastError = nil
+            return result
+        } catch {
+            lastError = String(describing: error)
+            throw error
         }
     }
 
@@ -316,6 +343,7 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
     private let runtimePlatform: any RecorderRuntimePlatform
     private let isLocationServicesEnabled: @MainActor () async -> Bool
     private var resources: LocalCaptureRuntimeResources?
+    private var shutdownTasks: [Task<Void, Never>] = []
     private let now: @Sendable () -> Date
     private var writeAdmission: LocalCaptureWriteAdmission
     private let onTermination: @MainActor (LocalCaptureLifecycleInterruption) -> Void
@@ -433,14 +461,23 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
             return nil
         }
 
-        let resources = LocalCaptureRuntimeResources(
-            backgroundActivity: runtimePlatform.makeBackgroundActivityHandle(),
-            serviceSession: capabilities.authorization == .always
-                ? runtimePlatform.makeServiceSessionHandle()
-                : nil
-        )
+        guard isAcceptingUpdates else {
+            return nil
+        }
+        let backgroundActivity = runtimePlatform.makeBackgroundActivityHandle()
+        guard isAcceptingUpdates else {
+            backgroundActivity.invalidate()
+            return nil
+        }
+        let resources = LocalCaptureRuntimeResources(backgroundActivity: backgroundActivity)
         self.resources = resources
-        if let serviceSession = resources.serviceSession {
+        if capabilities.authorization == .always {
+            let serviceSession = runtimePlatform.makeServiceSessionHandle()
+            guard isAcceptingUpdates else {
+                serviceSession.invalidate()
+                return nil
+            }
+            resources.serviceSession = serviceSession
             startServiceSession(serviceSession)
         }
         return resources
@@ -489,8 +526,15 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
             return
         }
         isAcceptingUpdates = false
-        taskLifetime.cancelAll()
+        shutdownTasks = taskLifetime.cancelAll()
         resources?.close()
+    }
+
+    func waitUntilStopped() async {
+        for task in shutdownTasks {
+            await task.value
+        }
+        shutdownTasks.removeAll()
     }
 
     private func report(_ interruption: LocalCaptureLifecycleInterruption) {
@@ -504,15 +548,11 @@ private final class LocalCaptureRuntimeSession: LocalCaptureRuntimeHandle {
 @MainActor
 private final class LocalCaptureRuntimeResources {
     private let backgroundActivity: any RecorderBackgroundActivityHandle
-    let serviceSession: (any RecorderServiceSessionHandle)?
+    var serviceSession: (any RecorderServiceSessionHandle)?
     private var isClosed = false
 
-    init(
-        backgroundActivity: any RecorderBackgroundActivityHandle,
-        serviceSession: (any RecorderServiceSessionHandle)?
-    ) {
+    init(backgroundActivity: any RecorderBackgroundActivityHandle) {
         self.backgroundActivity = backgroundActivity
-        self.serviceSession = serviceSession
     }
 
     func close() {

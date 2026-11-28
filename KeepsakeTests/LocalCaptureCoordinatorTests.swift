@@ -4,6 +4,200 @@ import Testing
 
 @MainActor
 struct LocalCaptureCoordinatorTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func stopAndDisposalWaitForJoinAndCoalesceRepeatStop(dispose: Bool) async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let shutdown = RecorderQuiescenceGate()
+        runtime.nextShutdownGate = shutdown
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        await store.gateNextStop()
+        var returned = false
+        let first = Task {
+            let result: LocalCaptureStopResult
+            if dispose {
+                result = try await coordinator.dispose()
+            } else {
+                result = try await coordinator.stopRecording()
+            }
+            returned = true
+            return result
+        }
+        await store.waitForStopCall()
+        await shutdown.waitUntilWaiting()
+        #expect(runtime.stopCallCount == 1)
+        #expect(!coordinator.isAcceptingSamples)
+        #expect(!coordinator.isRuntimeQuiescent)
+
+        let repeatedEntered = RecorderQuiescenceGate()
+        let repeated = Task {
+            repeatedEntered.open()
+            return try await coordinator.stopRecording()
+        }
+        await repeatedEntered.wait()
+        await expectError(dispose ? LocalCaptureCoordinatorError.disposed : .stopPending) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+        first.cancel()
+        await store.releaseStop()
+        await store.waitForStopCommit()
+        #expect(!returned)
+        #expect(try await store.readControl().activeEpoch == nil)
+        guard case .stopping = coordinator.state else {
+            Issue.record("Durable Stop released the pending fence before runtime join")
+            shutdown.open()
+            _ = try await first.value
+            _ = try await repeated.value
+            return
+        }
+
+        shutdown.open()
+        let result = try await first.value
+        #expect(try await repeated.value == result)
+        #expect(returned)
+        #expect(coordinator.isRuntimeQuiescent)
+        #expect(await store.stopCallCount() == 1)
+        if dispose {
+            await expectError(LocalCaptureCoordinatorError.disposed) {
+                try await coordinator.startRecording(recordingID: UUID())
+            }
+        } else {
+            _ = try await coordinator.startRecording(recordingID: UUID())
+            #expect(runtime.startedEpochs.count == 2)
+            _ = try await coordinator.stopRecording()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func interruptionJoinsOldRuntimeBeforeAnotherBegin(stopWhileWaiting: Bool) async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let shutdown = RecorderQuiescenceGate()
+        runtime.nextShutdownGate = shutdown
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        guard case .active(let epoch, let generation, _) = coordinator.state else {
+            Issue.record("Expected an active runtime")
+            return
+        }
+        #expect(coordinator.runtimeInterrupted(epoch: epoch, generation: generation))
+        await shutdown.waitUntilWaiting()
+        let startEntered = RecorderQuiescenceGate()
+        let resume = Task {
+            startEntered.open()
+            return try await coordinator.startRecording(recordingID: epoch.recordingID)
+        }
+        await startEntered.wait()
+        #expect(await store.beginCallCount() == 1)
+        #expect(runtime.startedEpochs.count == 1)
+        #expect(!coordinator.isRuntimeQuiescent)
+        if stopWhileWaiting {
+            let stop = Task { try await coordinator.stopRecording() }
+            await store.waitForStopCommit()
+            shutdown.open()
+            await expectError(LocalCaptureCoordinatorError.supersededByStop) { try await resume.value }
+            _ = try await stop.value
+            #expect(await store.beginCallCount() == 1)
+            #expect(runtime.startedEpochs.count == 1)
+            return
+        }
+        shutdown.open()
+        let resumedEpoch = try await resume.value
+        #expect(resumedEpoch.revision > epoch.revision)
+        #expect(runtime.startedEpochs.count == 2)
+        #expect(!coordinator.runtimeInterrupted(epoch: epoch, generation: generation))
+        _ = try await coordinator.stopRecording()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disposalDuringBeginFencesTheLateCommitWithoutStartingRuntime() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        _ = try await coordinator.refreshControl()
+        await store.gateNextBegin()
+        let begin = Task { try await coordinator.startRecording(recordingID: UUID()) }
+        await store.waitForBeginCall()
+        let stopping = RecorderQuiescenceGate()
+        coordinator.onStateChange = { [weak coordinator] in
+            if let coordinator, case .stopping = coordinator.state { stopping.open() }
+        }
+        let disposal = Task { try await coordinator.dispose() }
+        await stopping.wait()
+        #expect(runtime.startedEpochs.isEmpty)
+        #expect(await store.stopCallCount() == 0)
+        await expectError(LocalCaptureCoordinatorError.disposed) {
+            try await coordinator.startRecording(recordingID: UUID())
+        }
+        await store.releaseBegin()
+        await expectError(LocalCaptureCoordinatorError.supersededByStop) { try await begin.value }
+        guard case .stopped(let receipt) = try await disposal.value else {
+            Issue.record("Disposal did not durably Stop the late Begin")
+            return
+        }
+        #expect(receipt.epoch.revision == 1)
+        #expect(runtime.startedEpochs.isEmpty)
+        #expect(coordinator.isRuntimeQuiescent)
+        coordinator.onStateChange = nil
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disposedRuntimeJoinDoesNotResolveUncertainStopOrChangeItsIdentity() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let shutdown = RecorderQuiescenceGate()
+        runtime.nextShutdownGate = shutdown
+        let coordinator = try await activeCoordinator(store: store, runtime: runtime)
+        await store.setNextStopBehavior(.uncertainAfterCommit)
+        let error = await capturedError { try await coordinator.stopRecording() }
+        let operationID = try #require(coordinatorOperationID(from: error))
+        await shutdown.waitUntilWaiting()
+        #expect(!coordinator.isRuntimeQuiescent)
+        let disposal = Task { await capturedError { try await coordinator.dispose() } }
+        shutdown.open()
+        #expect((await disposal.value) as? LocalCaptureCoordinatorError == .stopUnconfirmed(operationID))
+        #expect(coordinator.isRuntimeQuiescent)
+        guard case .uncertain(let retainedID, .stop, _) = coordinator.state else {
+            Issue.record("Runtime shutdown incorrectly resolved durable uncertainty")
+            return
+        }
+        #expect(retainedID == operationID)
+        await expectError(LocalCaptureCoordinatorError.disposed) { try await coordinator.startRecording(recordingID: UUID()) }
+        guard case .stopCommitted(let receipt) = try await coordinator.reconcileUncertain() else {
+            Issue.record("Exact Stop could not reconcile after disposal")
+            return
+        }
+        #expect(receipt.operationID == operationID)
+        #expect(await store.stopIDs() == [operationID])
+        #expect(runtime.startedEpochs.count == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disposalAlsoWaitsForPreviouslyAdmittedHistoryMutation() async throws {
+        let store = CoordinatorPersistenceFake()
+        let runtime = CoordinatorRuntimeFake()
+        let coordinator = makeCoordinator(store: store, runtime: runtime)
+        _ = try await coordinator.refreshControl()
+        await store.gateNextClear()
+        let clear = Task { try await coordinator.clearHistory(expectedControlRevision: 0) }
+        await store.waitForClearCall()
+        let entered = RecorderQuiescenceGate()
+        var returned = false
+        let disposal = Task {
+            entered.open()
+            let result = try await coordinator.dispose()
+            returned = true
+            return result
+        }
+        await entered.wait()
+        await expectError(LocalCaptureCoordinatorError.disposed) { try await coordinator.clearHistory(expectedControlRevision: 0) }
+        #expect(!returned)
+        await store.releaseClear()
+        _ = try await clear.value
+        _ = try await disposal.value
+        #expect(returned)
+        #expect(coordinator.isRuntimeQuiescent)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func historyMaintenanceDuringAppendDoesNotStopTheRecordingOwner() async throws {
         let store = CoordinatorPersistenceFake()
@@ -1380,6 +1574,7 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
     private var stopBarrier: CheckedContinuation<Void, Never>?
     private var clearBarrier: CheckedContinuation<Void, Never>?
     private var stopCallWaiters: [CheckedContinuation<Void, Never>] = []
+    private var stopCommitWaiters: [CheckedContinuation<Void, Never>] = []
     private var clearCallWaiters: [CheckedContinuation<Void, Never>] = []
     private var events: [String] = []
     private var lookupUnavailable = false
@@ -1574,6 +1769,7 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
         )
         receipts[operationID] = .control(receipt)
         events.append("stop.committed")
+        resume(&stopCommitWaiters)
         if behavior == .uncertainAfterCommit {
             throw CapturePersistenceError.outcomeUncertain(operationID)
         }
@@ -1746,6 +1942,11 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
         await withCheckedContinuation { stopCallWaiters.append($0) }
     }
 
+    func waitForStopCommit() async {
+        guard !events.contains("stop.committed") else { return }
+        await withCheckedContinuation { stopCommitWaiters.append($0) }
+    }
+
     func waitForClearCall() async {
         guard clearCalls == 0 else { return }
         await withCheckedContinuation { clearCallWaiters.append($0) }
@@ -1834,6 +2035,7 @@ actor CoordinatorPersistenceFake: LocalCapturePersistence {
 
 @MainActor
 private final class CoordinatorRuntimeFake: LocalCaptureRuntimeControl {
+    var nextShutdownGate: RecorderQuiescenceGate?
     private(set) var startedEpochs: [CaptureEpoch] = []
     private(set) var startedGenerations: [UUID] = []
     private(set) var handles: [CoordinatorRuntimeHandleFake] = []
@@ -1845,7 +2047,8 @@ private final class CoordinatorRuntimeFake: LocalCaptureRuntimeControl {
     func start(epoch: CaptureEpoch, generation: UUID) -> any LocalCaptureRuntimeHandle {
         startedEpochs.append(epoch)
         startedGenerations.append(generation)
-        let handle = CoordinatorRuntimeHandleFake()
+        let handle = CoordinatorRuntimeHandleFake(shutdownGate: nextShutdownGate)
+        nextShutdownGate = nil
         handles.append(handle)
         return handle
     }
@@ -1853,10 +2056,48 @@ private final class CoordinatorRuntimeFake: LocalCaptureRuntimeControl {
 
 @MainActor
 private final class CoordinatorRuntimeHandleFake: LocalCaptureRuntimeHandle {
+    private let shutdownGate: RecorderQuiescenceGate?
     private(set) var stopCallCount = 0
+
+    init(shutdownGate: RecorderQuiescenceGate?) {
+        self.shutdownGate = shutdownGate
+    }
 
     func stop() {
         stopCallCount += 1
+    }
+
+    func waitUntilStopped() async {
+        await shutdownGate?.wait()
+    }
+}
+
+@MainActor
+final class RecorderQuiescenceGate {
+    private var isOpen = false
+    private var isWaiting = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var entryWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        isWaiting = true
+        let entered = entryWaiters
+        entryWaiters = []
+        entered.forEach { $0.resume() }
+        guard !isOpen else { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func waitUntilWaiting() async {
+        guard !isWaiting else { return }
+        await withCheckedContinuation { entryWaiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        let waiting = waiters
+        waiters = []
+        waiting.forEach { $0.resume() }
     }
 }
 

@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 protocol LocalCaptureRuntimeHandle: AnyObject {
     func stop()
+    func waitUntilStopped() async
 }
 
 @MainActor
@@ -39,6 +40,7 @@ enum LocalCaptureCoordinatorState: Equatable {
 }
 
 enum LocalCaptureCoordinatorError: Error, Equatable {
+    case disposed
     case storageNotReady
     case stopPending
     case stopUnconfirmed(UUID)
@@ -231,6 +233,8 @@ final class LocalCaptureCoordinator {
     private var pendingAppends: [UUID: AppendRequest] = [:]
     private var uncertainty: UncertainOperation?
     private var runtimeOwner: RuntimeOwner?
+    private var runtimeShutdown: Task<Void, Never>?
+    private(set) var isDisposed = false
     private var runtimeGeneration = UUID()
     private var admissionOpen = false
 
@@ -254,6 +258,10 @@ final class LocalCaptureCoordinator {
         admissionOpen && runtimeOwner != nil && uncertainty == nil && pendingStop == nil
     }
 
+    var isRuntimeQuiescent: Bool {
+        runtimeOwner == nil && runtimeShutdown == nil
+    }
+
     init(
         persistence: any LocalCapturePersistence,
         runtime: any LocalCaptureRuntimeControl,
@@ -266,6 +274,10 @@ final class LocalCaptureCoordinator {
 
     func refreshControl() async throws -> CaptureControlSnapshot {
         try await withCheckedThrowingContinuation { continuation in
+            guard !isDisposed else {
+                continuation.resume(throwing: LocalCaptureCoordinatorError.disposed)
+                return
+            }
             guard uncertainty == nil else {
                 continuation.resume(throwing: LocalCaptureCoordinatorError.unresolvedOperation(uncertainty!.operationID))
                 return
@@ -288,7 +300,21 @@ final class LocalCaptureCoordinator {
     }
 
     func startRecording(recordingID: UUID) async throws -> CaptureEpoch {
-        try await withCheckedThrowingContinuation { continuation in
+        if let runtimeShutdown, !isDisposed, pendingStop == nil, uncertainty == nil {
+            let generation = runtimeGeneration
+            await runtimeShutdown.value
+            guard !isDisposed else {
+                throw LocalCaptureCoordinatorError.disposed
+            }
+            guard runtimeGeneration == generation else {
+                throw LocalCaptureCoordinatorError.supersededByStop
+            }
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            guard !isDisposed else {
+                continuation.resume(throwing: LocalCaptureCoordinatorError.disposed)
+                return
+            }
             guard let controlSnapshot else {
                 continuation.resume(throwing: LocalCaptureCoordinatorError.storageNotReady)
                 return
@@ -334,8 +360,7 @@ final class LocalCaptureCoordinator {
                 return
             }
 
-            let generation = UUID()
-            runtimeGeneration = generation
+            let generation = runtimeGeneration
             admissionOpen = false
             state = .beginning(recordingID: recordingID, generation: generation)
             let request = BeginRequest(
@@ -433,7 +458,9 @@ final class LocalCaptureCoordinator {
             }
 
             closeRuntimeAndAdvanceGeneration()
-            if controlSnapshot.activeEpoch == nil, pendingBegin == nil, uncertainty == nil {
+            if controlSnapshot.activeEpoch == nil,
+               pendingBegin == nil, pendingControlRead == nil, pendingClear == nil,
+               runtimeShutdown == nil {
                 state = .stopped(controlRevision: controlSnapshot.revision)
                 continuation.resume(returning: .alreadyStopped(controlSnapshot))
                 return
@@ -453,11 +480,41 @@ final class LocalCaptureCoordinator {
         }
     }
 
+    func dispose() async throws -> LocalCaptureStopResult {
+        isDisposed = true
+        do {
+            let result = try await stopRecording()
+            await worker?.value
+            if let uncertainty {
+                throw LocalCaptureCoordinatorError.unresolvedOperation(uncertainty.operationID)
+            }
+            return result
+        } catch {
+            await runtimeShutdown?.value
+            throw error
+        }
+    }
+
+    func abandonRuntime() async {
+        isDisposed = true
+        if pendingStop == nil {
+            closeRuntimeAndAdvanceGeneration()
+            if let controlSnapshot, uncertainty == nil, pendingBegin == nil {
+                stateFromSnapshotWithoutRuntime(controlSnapshot)
+            }
+        }
+        await runtimeShutdown?.value
+    }
+
     func clearHistory(
         expectedControlRevision: Int64,
         operationID: UUID = UUID()
     ) async throws -> CaptureClearReceipt {
         try await withCheckedThrowingContinuation { continuation in
+            guard !isDisposed else {
+                continuation.resume(throwing: LocalCaptureCoordinatorError.disposed)
+                return
+            }
             guard uncertainty == nil else {
                 continuation.resume(throwing: LocalCaptureCoordinatorError.unresolvedOperation(uncertainty!.operationID))
                 return
@@ -637,9 +694,9 @@ final class LocalCaptureCoordinator {
             pendingBegin = nil
 
             pendingStop?.epoch = receipt.epoch
-            guard pendingStop == nil, runtimeGeneration == request.generation else {
+            guard !isDisposed, pendingStop == nil, runtimeGeneration == request.generation else {
                 admissionOpen = false
-                state = .stopping(operationID: pendingStop?.operationID ?? request.operationID, epoch: receipt.epoch)
+                stateFromSnapshotWithoutRuntime(snapshot)
                 resume(&request.waiters, throwing: LocalCaptureCoordinatorError.supersededByStop)
                 return
             }
@@ -742,6 +799,8 @@ final class LocalCaptureCoordinator {
             return
         }
         guard let epoch = snapshot.activeEpoch else {
+            request.status = .running
+            await runtimeShutdown?.value
             controlSnapshot = snapshot
             pendingStop = nil
             request.status = .completed
@@ -784,6 +843,7 @@ final class LocalCaptureCoordinator {
             }
 
             controlSnapshot = current
+            await runtimeShutdown?.value
             pendingStop = nil
             request.status = .completed
             state = .stopped(controlRevision: current.revision)
@@ -829,6 +889,7 @@ final class LocalCaptureCoordinator {
                ),
                isCurrentStop(receipt, in: snapshot) {
                 controlSnapshot = snapshot
+                await runtimeShutdown?.value
                 pendingStop = nil
                 request.status = .completed
                 state = .stopped(controlRevision: snapshot.revision)
@@ -994,7 +1055,7 @@ final class LocalCaptureCoordinator {
         case .begin(let request):
             return reconcileBegin(request, lookup: lookup, snapshot: snapshot)
         case .stop(let request):
-            return reconcileStop(request, lookup: lookup, snapshot: snapshot)
+            return await reconcileStop(request, lookup: lookup, snapshot: snapshot)
         case .append(let request):
             return await reconcileAppend(request, lookup: lookup, snapshot: snapshot, persistence: persistence)
         case .clear(let request):
@@ -1055,7 +1116,7 @@ final class LocalCaptureCoordinator {
         _ request: StopRequest,
         lookup: CaptureReceiptLookup,
         snapshot: CaptureControlSnapshot
-    ) -> LocalCaptureReconciliationResult {
+    ) async -> LocalCaptureReconciliationResult {
         guard let epoch = request.epoch,
               let expectedRevision = request.expectedControlRevision else {
             return unresolved(request.operationID, kind: .stop, reason: .controlChanged)
@@ -1101,6 +1162,7 @@ final class LocalCaptureCoordinator {
             guard runtimeGeneration == request.generation, pendingStop === request else {
                 return unresolved(request.operationID, kind: .stop, reason: .controlChanged)
             }
+            await runtimeShutdown?.value
             uncertainty = nil
             pendingStop = nil
             request.status = .completed
@@ -1286,8 +1348,15 @@ final class LocalCaptureCoordinator {
     private func closeRuntimeAndAdvanceGeneration() {
         runtimeGeneration = UUID()
         admissionOpen = false
-        runtimeOwner?.handle.stop()
+        guard let owner = runtimeOwner else {
+            return
+        }
         runtimeOwner = nil
+        runtimeShutdown = Task { @MainActor [weak self, handle = owner.handle] in
+            await handle.waitUntilStopped()
+            self?.runtimeShutdown = nil
+        }
+        owner.handle.stop()
     }
 
     private func refreshAfterStaleFence() async {
