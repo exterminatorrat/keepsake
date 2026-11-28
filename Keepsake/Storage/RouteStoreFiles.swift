@@ -119,16 +119,20 @@ enum RouteStoreFiles {
         return identity
     }
 
-    static func acquireExclusiveLock(at rootURL: URL, seams: RouteStoreSeams) throws -> Int32 {
+    static func acquireExclusiveLock(at rootURL: URL, seams: RouteStoreSeams, create: Bool = true) throws -> Int32 {
         let lockURL = rootURL.appendingPathComponent(lockName, isDirectory: false)
-        let descriptor = open(posixPath(lockURL), O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, mode_t(0o600))
+        let descriptor = open(posixPath(lockURL), (create ? O_CREAT : 0) | O_RDWR | O_CLOEXEC | O_NOFOLLOW, mode_t(0o600))
         guard descriptor >= 0 else {
             throw RouteStoreError.unsafePath
         }
 
         do {
             try validateOwnedRegularFile(lockURL, requirePrivate: true, requireReadOnly: false)
-            try seams.protectAndVerify(lockURL, .file)
+            if create {
+                try seams.protectAndVerify(lockURL, .file)
+            } else {
+                try verifyProtection(at: lockURL, directory: false, seams: seams)
+            }
             guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
                 throw RouteStoreError.lockUnavailable
             }
@@ -145,6 +149,22 @@ enum RouteStoreFiles {
             _ = Darwin.close(descriptor)
             throw error
         }
+    }
+
+    static func validateRollbackDatabaseHeader(_ url: URL, descriptor: Int32) throws {
+        let identity = try captureIdentity(at: url, directory: false)
+        try verifyIdentity(at: url, matches: identity, directory: false, descriptor: descriptor)
+        var header = [UInt8](repeating: 0, count: 20)
+        let count = header.withUnsafeMutableBytes { bytes in
+            pread(descriptor, bytes.baseAddress, bytes.count, 0)
+        }
+        guard count == header.count,
+              Array(header.prefix(16)) == Array("SQLite format 3\0".utf8),
+              header[18] == 1,
+              header[19] == 1 else {
+            throw RouteStoreError.corruptDatabase
+        }
+        try verifyIdentity(at: url, matches: identity, directory: false, descriptor: descriptor)
     }
 
     static func createDatabaseFile(at url: URL, seams: RouteStoreSeams) throws -> RouteStoreFileIdentity {
@@ -541,6 +561,29 @@ enum RouteStoreFiles {
             }
             let excluded = try mutableURL.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup
             guard excluded == true else {
+                throw RouteStoreError.backupExclusionFailed
+            }
+        } catch let error as RouteStoreError {
+            throw error
+        } catch {
+            throw RouteStoreError.protectionFailed
+        }
+    }
+
+    static func verifyProtection(at url: URL, directory: Bool, seams: RouteStoreSeams) throws {
+        do {
+            if directory {
+                try validateOwnedDirectory(url, requirePrivate: true)
+            } else {
+                try validateOwnedRegularFile(url, requirePrivate: true)
+            }
+            guard try seams.readProtection(url) == .completeUntilFirstUserAuthentication else {
+                throw RouteStoreError.protectionFailed
+            }
+            var currentURL = url
+            currentURL.removeCachedResourceValue(forKey: .isExcludedFromBackupKey)
+            let values = try currentURL.resourceValues(forKeys: [.isExcludedFromBackupKey])
+            guard values.isExcludedFromBackup == true else {
                 throw RouteStoreError.backupExclusionFailed
             }
         } catch let error as RouteStoreError {
